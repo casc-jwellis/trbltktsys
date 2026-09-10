@@ -1,3 +1,5 @@
 .json
 .claude
 CLAUDE.md
+config/config.php
+local-test.sqlite
