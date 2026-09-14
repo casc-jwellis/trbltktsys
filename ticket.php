@@ -89,8 +89,6 @@ $assignedGroupNames = array_values(array_intersect_key(
     array_column($groups, 'name', 'id'),
     array_flip($assignedGroupIds)
 ));
-$assigneeNames = array_merge($assignedUserNames, $assignedGroupNames);
-
 $assigneeTooltipHtml = '<div class="text-start"><div class="fw-semibold border-bottom pb-1 mb-1">Assigned To</div>';
 if (!$assignedUserNames && !$assignedGroupNames) {
     $assigneeTooltipHtml .= '<div>Unassigned</div>';
@@ -194,16 +192,6 @@ require __DIR__ . '/includes/header.php';
         </div>
     </div>
     <div class="card-body p-4">
-        <div class="mb-4 pb-4 border-bottom">
-            <div class="fw-semibold small text-body-secondary mb-1">Assigned To</div>
-            <?php if (!$assigneeNames): ?>
-                <span class="text-body-secondary">Unassigned</span>
-            <?php else: ?>
-                <?php foreach ($assigneeNames as $name): ?>
-                    <span class="badge text-bg-secondary me-1"><?= e($name) ?></span>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
         <?php if (!ticket_assignments_supported()): ?>
             <div class="alert alert-warning small">Ticket assignment is unavailable until an administrator visits <a href="migrate.php">migrate.php</a> to update the database.</div>
         <?php endif; ?>
