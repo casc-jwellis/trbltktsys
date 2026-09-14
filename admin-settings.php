@@ -3,7 +3,7 @@ require __DIR__ . '/includes/bootstrap.php';
 require_once __DIR__ . '/includes/admin.php';
 require_admin();
 
-$activeTab = ($_GET['tab'] ?? '') === 'groups' ? 'groups' : 'users';
+$activeTab = in_array($_GET['tab'] ?? '', ['groups', 'database'], true) ? $_GET['tab'] : 'users';
 
 $allRoles = all_roles();
 $adminRoleId = null;
@@ -26,6 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'create_user') {
         $username = trim((string) ($_POST['username'] ?? ''));
         $fullName = trim((string) ($_POST['full_name'] ?? ''));
+        $email = trim((string) ($_POST['email'] ?? ''));
+        $phone = trim((string) ($_POST['phone'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
         $passwordConfirm = (string) ($_POST['password_confirm'] ?? '');
         $roleIds = valid_ids_from_post($_POST['roles'] ?? [], $allRoles);
@@ -37,6 +39,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if ($fullName === '') {
             $errors[] = 'Please enter a full name.';
+        }
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Please enter a valid email address.';
+        }
+        if (strlen($phone) > 30) {
+            $errors[] = 'Phone number is too long (30 characters max).';
         }
         if (strlen($password) < 8) {
             $errors[] = 'Password must be at least 8 characters.';
@@ -53,9 +61,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 db()->beginTransaction();
 
                 $stmt = db()->prepare(
-                    'INSERT INTO users (username, password_hash, full_name) VALUES (?, ?, ?)'
+                    'INSERT INTO users (username, password_hash, full_name, email, phone) VALUES (?, ?, ?, ?, ?)'
                 );
-                $stmt->execute([$username, password_hash($password, PASSWORD_DEFAULT), $fullName]);
+                $stmt->execute([
+                    $username,
+                    password_hash($password, PASSWORD_DEFAULT),
+                    $fullName,
+                    $email !== '' ? $email : null,
+                    $phone !== '' ? $phone : null,
+                ]);
                 $newUserId = (int) db()->lastInsertId();
 
                 $roleStmt = db()->prepare('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)');
@@ -83,6 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $userId = (int) ($_POST['user_id'] ?? 0);
         $username = trim((string) ($_POST['username'] ?? ''));
         $fullName = trim((string) ($_POST['full_name'] ?? ''));
+        $email = trim((string) ($_POST['email'] ?? ''));
+        $phone = trim((string) ($_POST['phone'] ?? ''));
         $newPassword = (string) ($_POST['new_password'] ?? '');
         $roleIds = valid_ids_from_post($_POST['roles'] ?? [], $allRoles);
         $groupIds = valid_ids_from_post($_POST['groups'] ?? [], $allGroups);
@@ -93,6 +109,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         if ($fullName === '') {
             $errors[] = 'Please enter a full name.';
+        }
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Please enter a valid email address.';
+        }
+        if (strlen($phone) > 30) {
+            $errors[] = 'Phone number is too long (30 characters max).';
         }
         if ($newPassword !== '' && strlen($newPassword) < 8) {
             $errors[] = 'New password must be at least 8 characters.';
@@ -112,14 +134,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 db()->beginTransaction();
 
+                $email = $email !== '' ? $email : null;
+                $phone = $phone !== '' ? $phone : null;
+
                 if ($newPassword !== '') {
                     $stmt = db()->prepare(
-                        'UPDATE users SET username = ?, full_name = ?, password_hash = ? WHERE id = ?'
+                        'UPDATE users SET username = ?, full_name = ?, email = ?, phone = ?, password_hash = ? WHERE id = ?'
                     );
-                    $stmt->execute([$username, $fullName, password_hash($newPassword, PASSWORD_DEFAULT), $userId]);
+                    $stmt->execute([$username, $fullName, $email, $phone, password_hash($newPassword, PASSWORD_DEFAULT), $userId]);
                 } else {
-                    $stmt = db()->prepare('UPDATE users SET username = ?, full_name = ? WHERE id = ?');
-                    $stmt->execute([$username, $fullName, $userId]);
+                    $stmt = db()->prepare('UPDATE users SET username = ?, full_name = ?, email = ?, phone = ? WHERE id = ?');
+                    $stmt->execute([$username, $fullName, $email, $phone, $userId]);
                 }
 
                 db()->prepare('DELETE FROM user_roles WHERE user_id = ?')->execute([$userId]);
@@ -198,6 +223,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         db()->prepare('DELETE FROM agent_groups WHERE id = ?')->execute([$groupId]);
         flash('success', 'Group removed.');
         $activeTab = 'groups';
+    } elseif ($action === 'purge_database') {
+        $confirmation = trim((string) ($_POST['confirmation'] ?? ''));
+
+        if ($confirmation !== 'DELETE EVERYTHING') {
+            flash('error', 'Type "DELETE EVERYTHING" exactly to confirm the purge.');
+            $activeTab = 'database';
+        } else {
+            try {
+                purge_all_data();
+                logout();
+                header('Location: install.php');
+                exit;
+            } catch (PDOException $e) {
+                flash('error', 'Could not purge the database.');
+                $activeTab = 'database';
+            }
+        }
     }
 
     header('Location: admin-settings.php?tab=' . $activeTab);
@@ -226,10 +268,15 @@ require __DIR__ . '/includes/header.php';
     <li class="nav-item">
         <a class="nav-link <?= $activeTab === 'groups' ? 'active' : '' ?>" href="admin-settings.php?tab=groups">Groups</a>
     </li>
+    <li class="nav-item">
+        <a class="nav-link <?= $activeTab === 'database' ? 'active' : '' ?>" href="admin-settings.php?tab=database">Database</a>
+    </li>
 </ul>
 
 <?php if ($activeTab === 'groups'): ?>
     <?php require __DIR__ . '/includes/admin-groups-tab.php'; ?>
+<?php elseif ($activeTab === 'database'): ?>
+    <?php require __DIR__ . '/includes/admin-database-tab.php'; ?>
 <?php else: ?>
     <?php require __DIR__ . '/includes/admin-users-tab.php'; ?>
 <?php endif; ?>

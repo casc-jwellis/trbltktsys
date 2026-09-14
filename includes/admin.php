@@ -21,7 +21,7 @@ function all_groups(): array
 function all_users_with_roles_and_groups(): array
 {
     return db()->query(
-        'SELECT u.id, u.username, u.full_name, u.is_locked, u.created_at,
+        'SELECT u.id, u.username, u.full_name, u.email, u.phone, u.is_locked, u.created_at,
                 GROUP_CONCAT(DISTINCT r.name ORDER BY r.name SEPARATOR ", ") AS role_names,
                 GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ", ") AS group_names
          FROM users u
@@ -88,4 +88,24 @@ function valid_ids_from_post(array $submitted, array $validRows): array
     $validIds = array_column($validRows, 'id');
     $ids = array_map('intval', $submitted);
     return array_values(array_intersect($ids, $validIds));
+}
+
+/**
+ * Deletes every ticket, staff account, and group. Roles themselves are left
+ * in place (they're fixed reference data, not user content) so the app can
+ * still assign them to whoever goes through initial setup next.
+ */
+function purge_all_data(): void
+{
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        $pdo->exec('DELETE FROM tickets');
+        $pdo->exec('DELETE FROM users');
+        $pdo->exec('DELETE FROM agent_groups');
+        $pdo->commit();
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
 }

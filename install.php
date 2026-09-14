@@ -38,6 +38,8 @@ $old = [
     'timezone'  => 'America/Chicago',
     'username'  => '',
     'full_name' => '',
+    'email'     => '',
+    'phone'     => '',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['stage'] ?? '') === $stage) {
@@ -101,6 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['stage'] ?? '') === $stage)
     } elseif ($stage === 'user') {
         $old['username'] = trim((string) ($_POST['username'] ?? ''));
         $old['full_name'] = trim((string) ($_POST['full_name'] ?? ''));
+        $old['email'] = trim((string) ($_POST['email'] ?? ''));
+        $old['phone'] = trim((string) ($_POST['phone'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
         $passwordConfirm = (string) ($_POST['password_confirm'] ?? '');
 
@@ -109,6 +113,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['stage'] ?? '') === $stage)
         }
         if ($old['full_name'] === '') {
             $errors[] = 'Please enter your full name.';
+        }
+        if ($old['email'] !== '' && !filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Please enter a valid email address.';
+        }
+        if (strlen($old['phone']) > 30) {
+            $errors[] = 'Phone number is too long (30 characters max).';
         }
         if (strlen($password) < 8) {
             $errors[] = 'Password must be at least 8 characters.';
@@ -121,8 +131,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['stage'] ?? '') === $stage)
             $pdo = db();
             $pdo->beginTransaction();
 
-            $stmt = $pdo->prepare('INSERT INTO users (username, password_hash, full_name) VALUES (?, ?, ?)');
-            $stmt->execute([$old['username'], password_hash($password, PASSWORD_DEFAULT), $old['full_name']]);
+            $stmt = $pdo->prepare('INSERT INTO users (username, password_hash, full_name, email, phone) VALUES (?, ?, ?, ?, ?)');
+            $stmt->execute([
+                $old['username'],
+                password_hash($password, PASSWORD_DEFAULT),
+                $old['full_name'],
+                $old['email'] !== '' ? $old['email'] : null,
+                $old['phone'] !== '' ? $old['phone'] : null,
+            ]);
             $userId = (int) $pdo->lastInsertId();
 
             // The first account gets both roles so it can manage tickets and access Admin Settings right away.
@@ -240,6 +256,16 @@ require __DIR__ . '/includes/header.php';
                     <div class="mb-3">
                         <label class="form-label" for="username">Username</label>
                         <input class="form-control" id="username" name="username" required value="<?= e($old['username']) ?>">
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="email">Email <span class="text-body-secondary">(optional)</span></label>
+                            <input type="email" class="form-control" id="email" name="email" value="<?= e($old['email']) ?>">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="phone">Phone <span class="text-body-secondary">(optional)</span></label>
+                            <input class="form-control" id="phone" name="phone" maxlength="30" value="<?= e($old['phone']) ?>">
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label" for="password">Password</label>

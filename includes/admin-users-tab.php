@@ -23,6 +23,8 @@ $myId = current_user_id();
                 <tr>
                     <th>Full Name</th>
                     <th>Username</th>
+                    <th>Email</th>
+                    <th>Phone</th>
                     <th>Roles</th>
                     <th>Groups</th>
                     <th>Status</th>
@@ -31,12 +33,14 @@ $myId = current_user_id();
             </thead>
             <tbody>
                 <?php if (!$users): ?>
-                    <tr><td colspan="6" class="text-center text-body-secondary py-4">No users found.</td></tr>
+                    <tr><td colspan="8" class="text-center text-body-secondary py-4">No users found.</td></tr>
                 <?php endif; ?>
                 <?php foreach ($users as $user): ?>
                     <tr>
                         <td><?= e($user['full_name']) ?></td>
                         <td><?= e($user['username']) ?></td>
+                        <td><?= $user['email'] ? '<a href="mailto:' . e($user['email']) . '">' . e($user['email']) . '</a>' : '—' ?></td>
+                        <td><?= e($user['phone'] ?: '—') ?></td>
                         <td><?= e($user['role_names'] ?: '—') ?></td>
                         <td><?= e($user['group_names'] ?: '—') ?></td>
                         <td>
@@ -101,6 +105,16 @@ $myId = current_user_id();
                     <div class="mb-3">
                         <label class="form-label" for="new_full_name">Full Name</label>
                         <input class="form-control" id="new_full_name" name="full_name" required maxlength="100">
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="new_email">Email <span class="text-body-secondary">(optional)</span></label>
+                            <input type="email" class="form-control" id="new_email" name="email" maxlength="150">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="new_phone">Phone <span class="text-body-secondary">(optional)</span></label>
+                            <input class="form-control" id="new_phone" name="phone" maxlength="30">
+                        </div>
                     </div>
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -170,6 +184,16 @@ $myId = current_user_id();
                         <div class="mb-3">
                             <label class="form-label" for="edit_full_name_<?= $uid ?>">Full Name</label>
                             <input class="form-control" id="edit_full_name_<?= $uid ?>" name="full_name" required maxlength="100" value="<?= e($user['full_name']) ?>">
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="edit_email_<?= $uid ?>">Email <span class="text-body-secondary">(optional)</span></label>
+                                <input type="email" class="form-control" id="edit_email_<?= $uid ?>" name="email" maxlength="150" value="<?= e($user['email']) ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="edit_phone_<?= $uid ?>">Phone <span class="text-body-secondary">(optional)</span></label>
+                                <input class="form-control" id="edit_phone_<?= $uid ?>" name="phone" maxlength="30" value="<?= e($user['phone']) ?>">
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label" for="edit_password_<?= $uid ?>">New Password</label>

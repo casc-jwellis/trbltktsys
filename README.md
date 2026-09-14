@@ -6,7 +6,10 @@ A simple PHP trouble ticket system.
 - **Helpdesk login** (`login.php`) — session-based auth for staff.
 - **Ticket queue & management** (`dashboard.php`, `ticket.php`) — staff-only, requires login.
 - **Admin settings** (`admin-settings.php`) — Administrator-only. Create, edit, lock, or remove
-  helpdesk accounts, assign roles (Administrator / Helpdesk Agent) and groups.
+  helpdesk accounts, assign roles (Administrator / Helpdesk Agent) and groups, and (from the
+  Database tab) purge all data.
+
+## Setup
 
 1. Create an empty MySQL database and a database user that can access it.
 2. Make sure `config/` and `uploads/` are writable by the web server — `config/` so the installer can save `config/config.php`, `uploads/` to store screenshots attached to submitted tickets.
@@ -16,19 +19,14 @@ Any page will redirect you into `install.php` until setup is finished. The insta
 
 1. **Database credentials** — enter your host/port/database/username/password; the connection is tested before anything is saved to `config/config.php`.
 2. **Tables** — creates the `tickets`, `users`, `roles`, and `agent_groups` tables (and their join tables) from `schema.sql` with one click.
-3. **First admin account** — create the helpdesk staff login you'll use going forward. This account is granted both the Administrator and Helpdesk Agent roles, so it can manage tickets and access Admin Settings immediately.
+3. **First admin account** — create the helpdesk staff login you'll use going forward, with an optional email and phone number. This account is granted both the Administrator and Helpdesk Agent roles, so it can manage tickets and access Admin Settings immediately.
 
-Once an admin account exists, `install.php` locks itself out (it redirects to `login.php`) so it can't be used to re-run setup or create more accounts later. Additional staff accounts — and their roles (Administrator / Helpdesk Agent) and groups — are managed from the **Admin Settings** panel (Administrator-only).
+Once an admin account exists, `install.php` locks itself out (it redirects to `login.php`) so it can't be used to re-run setup or create more accounts later. Additional staff accounts — and their roles (Administrator / Helpdesk Agent) and groups — are managed from the **Admin Settings** panel (Administrator-only). There's no CLI for creating accounts; the web installer and Admin Settings panel are the only ways in.
 
-Prefer to set it up by hand instead? Copy `config/config.example.php` to `config/config.php`, import `schema.sql` yourself, and create your first administrator from the CLI:
-```
-php create-user.php <username> "<Full Name>" --admin
-```
-Additional staff accounts can be created from the Admin Settings panel once you've logged in, or via the same command with `--agent` (the default if no flag is given).
-
-Upgrading an existing database created before admin settings or screenshot attachments existed? Run:
+Upgrading an existing database created before admin settings, contact info, or screenshot attachments existed? Run, in order:
 ```
 migrations/001_admin_roles_groups.sql
+migrations/002_user_contact_info.sql
 ```
 ```sql
 ALTER TABLE tickets ADD COLUMN attachment_path VARCHAR(255) NULL AFTER internal_notes;
