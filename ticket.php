@@ -133,12 +133,10 @@ require __DIR__ . '/includes/header.php';
     </div>
     <div class="card-body p-4">
         <h1 class="h4"><?= e($ticket['subject']) ?></h1>
-        <button type="button" class="btn btn-outline-secondary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#requesterInfoModal">User Information</button>
-        <p class="text-body-secondary mb-4">
-            Submitted by <?= e($ticket['requester_name']) ?>
-            (<a href="mailto:<?= e($ticket['requester_email']) ?>"><?= e($ticket['requester_email']) ?></a><?php if (!empty($ticket['requester_phone'])): ?>,
-            <a href="tel:<?= e($ticket['requester_phone']) ?>"><?= e($ticket['requester_phone']) ?></a><?php endif; ?>)
-            on <?= e(date('M j, Y g:i A', strtotime($ticket['created_at']))) ?>
+        <p class="text-body-secondary mb-4 d-flex align-items-center flex-wrap gap-2">
+            <span>Submitted by <?= e($ticket['requester_name']) ?></span>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#requesterInfoModal">User Information</button>
+            <span>on <?= e(date('M j, Y g:i A', strtotime($ticket['created_at']))) ?></span>
         </p>
         <p style="white-space: pre-wrap;"><?= e($ticket['description']) ?></p>
         <?php if (!empty($ticket['attachment_path'])): ?>
