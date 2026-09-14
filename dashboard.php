@@ -17,16 +17,31 @@ if (in_array($categoryFilter, category_names(), true)) {
     $params[] = $categoryFilter;
 }
 
-$sql = 'SELECT t.*, u.full_name AS assignee_name
-        FROM tickets t
-        LEFT JOIN users u ON u.id = t.assigned_to';
+$assignmentsSupported = ticket_assignments_supported();
+
+if ($assignmentsSupported) {
+    $sql = 'SELECT t.*,
+                GROUP_CONCAT(DISTINCT u.full_name ORDER BY u.full_name SEPARATOR ", ") AS assigned_user_names,
+                GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ", ") AS assigned_group_names
+            FROM tickets t
+            LEFT JOIN ticket_assigned_users tu ON tu.ticket_id = t.id
+            LEFT JOIN users u ON u.id = tu.user_id
+            LEFT JOIN ticket_assigned_groups tg ON tg.ticket_id = t.id
+            LEFT JOIN agent_groups g ON g.id = tg.group_id';
+} else {
+    // Migration 007 hasn't been run yet — the assignment tables don't exist.
+    $sql = 'SELECT t.*, NULL AS assigned_user_names, NULL AS assigned_group_names FROM tickets t';
+}
 if ($where) {
-    $sql .= ' WHERE ' . implode(' AND ', $where);
+    $sql .= ' WHERE ' . implode(' AND ', array_map(fn (string $clause): string => 't.' . $clause, $where));
+}
+if ($assignmentsSupported) {
+    $sql .= ' GROUP BY t.id';
 }
 $sql .= ' ORDER BY
-            CASE status WHEN "Open" THEN 0 WHEN "In Progress" THEN 1 WHEN "Resolved" THEN 2 ELSE 3 END,
-            CASE priority WHEN "Urgent" THEN 0 WHEN "High" THEN 1 WHEN "Medium" THEN 2 ELSE 3 END,
-            created_at DESC';
+            CASE t.status WHEN "Open" THEN 0 WHEN "In Progress" THEN 1 WHEN "Resolved" THEN 2 ELSE 3 END,
+            CASE t.priority WHEN "Urgent" THEN 0 WHEN "High" THEN 1 WHEN "Medium" THEN 2 ELSE 3 END,
+            t.created_at DESC';
 
 $stmt = db()->prepare($sql);
 $stmt->execute($params);
@@ -35,6 +50,10 @@ $tickets = $stmt->fetchAll();
 $pageTitle = 'Ticket Queue';
 require __DIR__ . '/includes/header.php';
 ?>
+
+<?php if (!$assignmentsSupported): ?>
+    <div class="alert alert-warning">The database is out of date — ticket assignment info is hidden until an administrator visits <a href="migrate.php">migrate.php</a>.</div>
+<?php endif; ?>
 
 <div class="d-flex justify-content-between align-items-end mb-4 flex-wrap gap-3">
     <div>
@@ -84,7 +103,7 @@ require __DIR__ . '/includes/header.php';
                         <td><?= e($ticket['category']) ?></td>
                         <td><span class="badge <?= priority_badge_class($ticket['priority']) ?>"><?= e($ticket['priority']) ?></span></td>
                         <td><span class="badge <?= status_badge_class($ticket['status']) ?>"><?= e($ticket['status']) ?></span></td>
-                        <td><?= e($ticket['assignee_name'] ?? '—') ?></td>
+                        <td><?= e(implode(', ', array_filter([$ticket['assigned_user_names'], $ticket['assigned_group_names']])) ?: '—') ?></td>
                         <td><?= e(date('M j, Y g:i A', strtotime($ticket['created_at']))) ?></td>
                     </tr>
                 <?php endforeach; ?>

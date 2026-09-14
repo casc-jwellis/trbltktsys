@@ -14,6 +14,113 @@ function category_names(): array
     return array_column(all_categories(), 'name');
 }
 
+/**
+ * Whether the ticket_assigned_users/ticket_assigned_groups tables exist yet
+ * (migration 007). Guards every ticket-assignment function below so a
+ * pending migration degrades gracefully instead of crashing ticket
+ * submission, the ticket queue, or a ticket's detail page.
+ */
+function ticket_assignments_supported(): bool
+{
+    static $result = null;
+    if ($result === null) {
+        $result = table_exists('ticket_assigned_users');
+    }
+    return $result;
+}
+
+/**
+ * Seeds a newly submitted ticket's assignment from whichever users/groups
+ * are configured (Admin Settings -> Categories) to handle its category.
+ */
+function assign_ticket_by_category(int $ticketId, string $category): void
+{
+    if (!ticket_assignments_supported()) {
+        return;
+    }
+
+    $stmt = db()->prepare('SELECT id FROM categories WHERE name = ?');
+    $stmt->execute([$category]);
+    $categoryId = $stmt->fetchColumn();
+
+    if ($categoryId === false) {
+        return;
+    }
+
+    $stmt = db()->prepare('INSERT INTO ticket_assigned_users (ticket_id, user_id) SELECT ?, user_id FROM user_categories WHERE category_id = ?');
+    $stmt->execute([$ticketId, $categoryId]);
+
+    $stmt = db()->prepare('INSERT INTO ticket_assigned_groups (ticket_id, group_id) SELECT ?, group_id FROM group_categories WHERE category_id = ?');
+    $stmt->execute([$ticketId, $categoryId]);
+}
+
+/** Non-locked agents plus, if given, any already-assigned users (so a now-locked account currently assigned to a ticket still shows up). */
+function assignable_users(array $includeUserIds = []): array
+{
+    $placeholders = implode(',', array_fill(0, count($includeUserIds), '?'));
+    $sql = 'SELECT id, full_name FROM users WHERE is_locked = 0';
+    if ($placeholders !== '') {
+        $sql .= ' OR id IN (' . $placeholders . ')';
+    }
+    $stmt = db()->prepare($sql . ' ORDER BY full_name');
+    $stmt->execute($includeUserIds);
+    return $stmt->fetchAll();
+}
+
+function assignable_groups(): array
+{
+    return db()->query('SELECT id, name FROM agent_groups ORDER BY name')->fetchAll();
+}
+
+function ticket_assigned_user_ids(int $ticketId): array
+{
+    if (!ticket_assignments_supported()) {
+        return [];
+    }
+    $stmt = db()->prepare('SELECT user_id FROM ticket_assigned_users WHERE ticket_id = ?');
+    $stmt->execute([$ticketId]);
+    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
+function ticket_assigned_group_ids(int $ticketId): array
+{
+    if (!ticket_assignments_supported()) {
+        return [];
+    }
+    $stmt = db()->prepare('SELECT group_id FROM ticket_assigned_groups WHERE ticket_id = ?');
+    $stmt->execute([$ticketId]);
+    return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
+/** Filters submitted group/category/user IDs down to ones that actually exist. */
+function valid_ids_from_post(array $submitted, array $validRows): array
+{
+    $validIds = array_column($validRows, 'id');
+    $ids = array_map('intval', $submitted);
+    return array_values(array_intersect($ids, $validIds));
+}
+
+/** Replaces a ticket's full set of assigned users/groups with the given IDs. */
+function save_ticket_assignments(int $ticketId, array $userIds, array $groupIds): void
+{
+    if (!ticket_assignments_supported()) {
+        return;
+    }
+
+    $pdo = db();
+    $pdo->prepare('DELETE FROM ticket_assigned_users WHERE ticket_id = ?')->execute([$ticketId]);
+    $stmt = $pdo->prepare('INSERT INTO ticket_assigned_users (ticket_id, user_id) VALUES (?, ?)');
+    foreach ($userIds as $userId) {
+        $stmt->execute([$ticketId, $userId]);
+    }
+
+    $pdo->prepare('DELETE FROM ticket_assigned_groups WHERE ticket_id = ?')->execute([$ticketId]);
+    $stmt = $pdo->prepare('INSERT INTO ticket_assigned_groups (ticket_id, group_id) VALUES (?, ?)');
+    foreach ($groupIds as $groupId) {
+        $stmt->execute([$ticketId, $groupId]);
+    }
+}
+
 const ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
 const ATTACHMENT_MIME_EXTENSIONS = [
     'image/png'  => 'png',

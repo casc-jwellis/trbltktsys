@@ -26,16 +26,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $status = (string) ($_POST['status'] ?? '');
         $priority = (string) ($_POST['priority'] ?? '');
-        $assignedTo = $_POST['assigned_to'] !== '' ? (int) $_POST['assigned_to'] : null;
         $internalNotes = trim((string) ($_POST['internal_notes'] ?? ''));
+        $userIds = valid_ids_from_post($_POST['assigned_users'] ?? [], assignable_users(ticket_assigned_user_ids($id)));
+        $groupIds = valid_ids_from_post($_POST['assigned_groups'] ?? [], assignable_groups());
 
         if (!in_array($status, TICKET_STATUSES, true) || !in_array($priority, TICKET_PRIORITIES, true)) {
             $error = 'Please choose valid values.';
         } else {
+            db()->beginTransaction();
+
             $stmt = db()->prepare(
-                'UPDATE tickets SET status = ?, priority = ?, assigned_to = ?, internal_notes = ? WHERE id = ?'
+                'UPDATE tickets SET status = ?, priority = ?, internal_notes = ? WHERE id = ?'
             );
-            $stmt->execute([$status, $priority, $assignedTo, $internalNotes, $id]);
+            $stmt->execute([$status, $priority, $internalNotes, $id]);
+            save_ticket_assignments($id, $userIds, $groupIds);
+
+            db()->commit();
 
             flash('success', 'Ticket #' . $id . ' updated.');
             header('Location: ticket.php?id=' . $id);
@@ -44,11 +50,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$stmt = db()->prepare(
-    'SELECT id, full_name FROM users WHERE is_locked = 0 OR id = ? ORDER BY full_name'
-);
-$stmt->execute([$ticket['assigned_to']]);
-$agents = $stmt->fetchAll();
+$assignedUserIds = ticket_assigned_user_ids($id);
+$assignedGroupIds = ticket_assigned_group_ids($id);
+$agents = assignable_users($assignedUserIds);
+$groups = assignable_groups();
 
 $pageTitle = 'Ticket #' . $id;
 require __DIR__ . '/includes/header.php';
@@ -108,14 +113,32 @@ require __DIR__ . '/includes/header.php';
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <?php if (!ticket_assignments_supported()): ?>
+                        <div class="alert alert-warning small">Ticket assignment is unavailable until an administrator visits <a href="migrate.php">migrate.php</a> to update the database.</div>
+                    <?php endif; ?>
                     <div class="mb-3">
-                        <label class="form-label" for="assigned_to">Assigned To</label>
-                        <select class="form-select" id="assigned_to" name="assigned_to">
-                            <option value="">Unassigned</option>
-                            <?php foreach ($agents as $agent): ?>
-                                <option value="<?= (int) $agent['id'] ?>" <?= (int) $ticket['assigned_to'] === (int) $agent['id'] ? 'selected' : '' ?>><?= e($agent['full_name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                        <label class="form-label d-block">Assigned Users</label>
+                        <?php if (!$agents): ?>
+                            <p class="text-body-secondary small mb-0">No agents available.</p>
+                        <?php endif; ?>
+                        <?php foreach ($agents as $agent): ?>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="assigned_users[]" value="<?= (int) $agent['id'] ?>" id="agent_<?= (int) $agent['id'] ?>" <?= in_array((int) $agent['id'], $assignedUserIds, true) ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="agent_<?= (int) $agent['id'] ?>"><?= e($agent['full_name']) ?></label>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label d-block">Assigned Groups</label>
+                        <?php if (!$groups): ?>
+                            <p class="text-body-secondary small mb-0">No groups available.</p>
+                        <?php endif; ?>
+                        <?php foreach ($groups as $group): ?>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="assigned_groups[]" value="<?= (int) $group['id'] ?>" id="group_<?= (int) $group['id'] ?>" <?= in_array((int) $group['id'], $assignedGroupIds, true) ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="group_<?= (int) $group['id'] ?>"><?= e($group['name']) ?></label>
+                            </div>
+                        <?php endforeach; ?>
                     </div>
                     <div class="mb-3">
                         <label class="form-label" for="internal_notes">Internal Notes</label>

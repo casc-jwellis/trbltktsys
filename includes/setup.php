@@ -79,6 +79,11 @@ function available_migrations(): array
             'label'   => 'Replace roles with a single is_admin flag',
             'applied' => fn (): bool => column_exists('users', 'is_admin'),
         ],
+        [
+            'file'    => '007_ticket_assignments.sql',
+            'label'   => 'Multi user/group ticket assignment',
+            'applied' => fn (): bool => table_exists('ticket_assigned_users'),
+        ],
     ];
 }
 

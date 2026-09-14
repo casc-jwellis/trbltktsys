@@ -64,15 +64,33 @@ CREATE TABLE tickets (
     category         VARCHAR(30) NOT NULL DEFAULT 'General',
     priority         VARCHAR(10) NOT NULL DEFAULT 'Medium',
     status           VARCHAR(20) NOT NULL DEFAULT 'Open',
-    assigned_to      INT UNSIGNED NULL,
     internal_notes   TEXT NULL,
     attachment_path  VARCHAR(255) NULL,
     created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_tickets_assigned_to FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL,
     CONSTRAINT fk_tickets_requester FOREIGN KEY (requester_email) REFERENCES requesters(email) ON UPDATE CASCADE,
     CONSTRAINT fk_tickets_category FOREIGN KEY (category) REFERENCES categories(name) ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX idx_tickets_status ON tickets(status);
 CREATE INDEX idx_tickets_category ON tickets(category);
+
+-- Who a ticket is currently assigned to. Seeded from user_categories /
+-- group_categories for the ticket's category when it's submitted, and
+-- freely editable afterward by helpdesk agents (a ticket can be assigned
+-- to any number of users and/or groups at once).
+CREATE TABLE ticket_assigned_users (
+    ticket_id INT UNSIGNED NOT NULL,
+    user_id   INT UNSIGNED NOT NULL,
+    PRIMARY KEY (ticket_id, user_id),
+    CONSTRAINT fk_ticket_assigned_users_ticket FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ticket_assigned_users_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE ticket_assigned_groups (
+    ticket_id INT UNSIGNED NOT NULL,
+    group_id  INT UNSIGNED NOT NULL,
+    PRIMARY KEY (ticket_id, group_id),
+    CONSTRAINT fk_ticket_assigned_groups_ticket FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ticket_assigned_groups_group FOREIGN KEY (group_id) REFERENCES agent_groups(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

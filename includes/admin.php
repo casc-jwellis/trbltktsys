@@ -104,14 +104,6 @@ function user_is_locked(int $userId): bool
     return $row && (int) $row['is_locked'] === 1;
 }
 
-/** Filters submitted group/category IDs down to ones that actually exist. */
-function valid_ids_from_post(array $submitted, array $validRows): array
-{
-    $validIds = array_column($validRows, 'id');
-    $ids = array_map('intval', $submitted);
-    return array_values(array_intersect($ids, $validIds));
-}
-
 /**
  * Deletes every ticket, requester, staff account, and group. Categories are
  * left in place (they're fixed config data, not user content) so ticket

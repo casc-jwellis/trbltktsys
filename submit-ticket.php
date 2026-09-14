@@ -79,6 +79,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         $newTicketId = db()->lastInsertId();
 
+        assign_ticket_by_category((int) $newTicketId, $old['category']);
+
         db()->commit();
 
         header('Location: ticket-submitted.php?id=' . $newTicketId);
