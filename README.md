@@ -8,8 +8,9 @@ A simple PHP trouble ticket system.
 - **Helpdesk login** (`login.php`) — session-based auth for staff.
 - **Ticket queue & management** (`dashboard.php`, `ticket.php`) — staff-only, requires login.
 - **Admin settings** (`admin-settings.php`) — Administrator-only. Create, edit, lock, or remove
-  helpdesk accounts, assign roles (Administrator / Helpdesk Agent) and groups, and (from the
-  Database tab) purge all data.
+  helpdesk accounts, assign roles (Administrator / Helpdesk Agent), groups, and ticket categories
+  to both users and groups, manage the category list itself, and (from the Database tab) purge
+  all data.
 - **Database migrations** (`migrate.php`) — applies any pending schema changes after a `git pull`,
   from the browser.
 

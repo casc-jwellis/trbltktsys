@@ -12,7 +12,7 @@ if (in_array($statusFilter, TICKET_STATUSES, true)) {
     $where[] = 'status = ?';
     $params[] = $statusFilter;
 }
-if (in_array($categoryFilter, TICKET_CATEGORIES, true)) {
+if (in_array($categoryFilter, category_names(), true)) {
     $where[] = 'category = ?';
     $params[] = $categoryFilter;
 }
@@ -50,7 +50,7 @@ require __DIR__ . '/includes/header.php';
         </select>
         <select class="form-select form-select-sm" name="category" onchange="this.form.submit()">
             <option value="">All Categories</option>
-            <?php foreach (TICKET_CATEGORIES as $category): ?>
+            <?php foreach (category_names() as $category): ?>
                 <option value="<?= e($category) ?>" <?= $categoryFilter === $category ? 'selected' : '' ?>><?= e($category) ?></option>
             <?php endforeach; ?>
         </select>

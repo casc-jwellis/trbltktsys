@@ -69,6 +69,11 @@ function available_migrations(): array
             'label'   => 'Ticket requester directory',
             'applied' => fn (): bool => table_exists('requesters'),
         ],
+        [
+            'file'    => '005_categories.sql',
+            'label'   => 'Manageable ticket categories, assignable to users and groups',
+            'applied' => fn (): bool => table_exists('categories'),
+        ],
     ];
 }
 

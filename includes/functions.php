@@ -1,8 +1,18 @@
 <?php
 
-const TICKET_CATEGORIES = ['General', 'Hardware', 'Software', 'Network', 'Account Access', 'Other'];
 const TICKET_PRIORITIES = ['Low', 'Medium', 'High', 'Urgent'];
 const TICKET_STATUSES   = ['Open', 'In Progress', 'Resolved', 'Closed'];
+
+/** Categories are managed in the database (Admin Settings -> Categories). */
+function all_categories(): array
+{
+    return db()->query('SELECT id, name FROM categories ORDER BY name')->fetchAll();
+}
+
+function category_names(): array
+{
+    return array_column(all_categories(), 'name');
+}
 
 const ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
 const ATTACHMENT_MIME_EXTENSIONS = [

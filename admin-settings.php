@@ -3,7 +3,7 @@ require __DIR__ . '/includes/bootstrap.php';
 require_once __DIR__ . '/includes/admin.php';
 require_admin();
 
-$activeTab = in_array($_GET['tab'] ?? '', ['groups', 'database'], true) ? $_GET['tab'] : 'users';
+$activeTab = in_array($_GET['tab'] ?? '', ['groups', 'categories', 'database'], true) ? $_GET['tab'] : 'users';
 
 $allRoles = all_roles();
 $adminRoleId = null;
@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $action = (string) ($_POST['action'] ?? '');
     $allGroups = all_groups();
+    $allCategories = all_categories();
 
     if ($action === 'create_user') {
         $username = trim((string) ($_POST['username'] ?? ''));
@@ -32,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $passwordConfirm = (string) ($_POST['password_confirm'] ?? '');
         $roleIds = valid_ids_from_post($_POST['roles'] ?? [], $allRoles);
         $groupIds = valid_ids_from_post($_POST['groups'] ?? [], $allGroups);
+        $categoryIds = valid_ids_from_post($_POST['categories'] ?? [], $allCategories);
 
         $errors = [];
         if ($username === '' || strlen($username) > 50) {
@@ -82,6 +84,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $groupStmt->execute([$newUserId, $groupId]);
                 }
 
+                $categoryStmt = db()->prepare('INSERT INTO user_categories (user_id, category_id) VALUES (?, ?)');
+                foreach ($categoryIds as $categoryId) {
+                    $categoryStmt->execute([$newUserId, $categoryId]);
+                }
+
                 db()->commit();
                 flash('success', 'Created user "' . $fullName . '".');
             } catch (PDOException $e) {
@@ -102,6 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newPassword = (string) ($_POST['new_password'] ?? '');
         $roleIds = valid_ids_from_post($_POST['roles'] ?? [], $allRoles);
         $groupIds = valid_ids_from_post($_POST['groups'] ?? [], $allGroups);
+        $categoryIds = valid_ids_from_post($_POST['categories'] ?? [], $allCategories);
 
         $errors = [];
         if ($username === '' || strlen($username) > 50) {
@@ -157,6 +165,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $groupStmt = db()->prepare('INSERT INTO user_agent_groups (user_id, group_id) VALUES (?, ?)');
                 foreach ($groupIds as $groupId) {
                     $groupStmt->execute([$userId, $groupId]);
+                }
+
+                db()->prepare('DELETE FROM user_categories WHERE user_id = ?')->execute([$userId]);
+                $categoryStmt = db()->prepare('INSERT INTO user_categories (user_id, category_id) VALUES (?, ?)');
+                foreach ($categoryIds as $categoryId) {
+                    $categoryStmt->execute([$userId, $categoryId]);
                 }
 
                 db()->commit();
@@ -218,11 +232,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         $activeTab = 'groups';
+    } elseif ($action === 'update_group') {
+        $groupId = (int) ($_POST['group_id'] ?? 0);
+        $name = trim((string) ($_POST['name'] ?? ''));
+        $description = trim((string) ($_POST['description'] ?? ''));
+        $categoryIds = valid_ids_from_post($_POST['categories'] ?? [], $allCategories);
+
+        if ($name === '' || strlen($name) > 60) {
+            flash('error', 'Please enter a group name (up to 60 characters).');
+        } else {
+            try {
+                db()->beginTransaction();
+
+                $stmt = db()->prepare('UPDATE agent_groups SET name = ?, description = ? WHERE id = ?');
+                $stmt->execute([$name, $description !== '' ? $description : null, $groupId]);
+
+                db()->prepare('DELETE FROM group_categories WHERE group_id = ?')->execute([$groupId]);
+                $categoryStmt = db()->prepare('INSERT INTO group_categories (group_id, category_id) VALUES (?, ?)');
+                foreach ($categoryIds as $categoryId) {
+                    $categoryStmt->execute([$groupId, $categoryId]);
+                }
+
+                db()->commit();
+                flash('success', 'Updated group "' . $name . '".');
+            } catch (PDOException $e) {
+                db()->rollBack();
+                flash('error', $e->getCode() === '23000'
+                    ? 'A group with that name already exists.'
+                    : 'Could not update the group.');
+            }
+        }
+        $activeTab = 'groups';
     } elseif ($action === 'delete_group') {
         $groupId = (int) ($_POST['group_id'] ?? 0);
         db()->prepare('DELETE FROM agent_groups WHERE id = ?')->execute([$groupId]);
         flash('success', 'Group removed.');
         $activeTab = 'groups';
+    } elseif ($action === 'create_category') {
+        $name = trim((string) ($_POST['name'] ?? ''));
+
+        if ($name === '' || strlen($name) > 50) {
+            flash('error', 'Please enter a category name (up to 50 characters).');
+        } else {
+            try {
+                $stmt = db()->prepare('INSERT INTO categories (name) VALUES (?)');
+                $stmt->execute([$name]);
+                flash('success', 'Created category "' . $name . '".');
+            } catch (PDOException $e) {
+                flash('error', $e->getCode() === '23000'
+                    ? 'A category with that name already exists.'
+                    : 'Could not create the category.');
+            }
+        }
+        $activeTab = 'categories';
+    } elseif ($action === 'update_category') {
+        $categoryId = (int) ($_POST['category_id'] ?? 0);
+        $name = trim((string) ($_POST['name'] ?? ''));
+
+        if ($name === '' || strlen($name) > 50) {
+            flash('error', 'Please enter a category name (up to 50 characters).');
+        } else {
+            try {
+                $stmt = db()->prepare('UPDATE categories SET name = ? WHERE id = ?');
+                $stmt->execute([$name, $categoryId]);
+                flash('success', 'Updated category "' . $name . '".');
+            } catch (PDOException $e) {
+                flash('error', $e->getCode() === '23000'
+                    ? 'A category with that name already exists.'
+                    : 'Could not update the category.');
+            }
+        }
+        $activeTab = 'categories';
+    } elseif ($action === 'delete_category') {
+        $categoryId = (int) ($_POST['category_id'] ?? 0);
+
+        if (count($allCategories) <= 1) {
+            flash('error', 'At least one category is required — the ticket form needs somewhere to send submissions.');
+        } else {
+            try {
+                db()->prepare('DELETE FROM categories WHERE id = ?')->execute([$categoryId]);
+                flash('success', 'Category removed.');
+            } catch (PDOException $e) {
+                flash('error', $e->getCode() === '23000'
+                    ? 'This category is used by existing tickets and cannot be removed.'
+                    : 'Could not remove the category.');
+            }
+        }
+        $activeTab = 'categories';
     } elseif ($action === 'purge_database') {
         $confirmation = trim((string) ($_POST['confirmation'] ?? ''));
 
@@ -247,10 +343,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $allGroups = all_groups();
+$allCategories = all_categories();
 $users = all_users_with_roles_and_groups();
 $userRoleMap = user_role_id_map();
 $userGroupMap = user_group_id_map();
+$userCategoryMap = user_category_id_map();
+$groupCategoryMap = group_category_id_map();
 $groups = $allGroups;
+$categories = all_categories_with_counts();
 
 $pageTitle = 'Admin Settings';
 require __DIR__ . '/includes/header.php';
@@ -269,12 +369,17 @@ require __DIR__ . '/includes/header.php';
         <a class="nav-link <?= $activeTab === 'groups' ? 'active' : '' ?>" href="admin-settings.php?tab=groups">Groups</a>
     </li>
     <li class="nav-item">
+        <a class="nav-link <?= $activeTab === 'categories' ? 'active' : '' ?>" href="admin-settings.php?tab=categories">Categories</a>
+    </li>
+    <li class="nav-item">
         <a class="nav-link <?= $activeTab === 'database' ? 'active' : '' ?>" href="admin-settings.php?tab=database">Database</a>
     </li>
 </ul>
 
 <?php if ($activeTab === 'groups'): ?>
     <?php require __DIR__ . '/includes/admin-groups-tab.php'; ?>
+<?php elseif ($activeTab === 'categories'): ?>
+    <?php require __DIR__ . '/includes/admin-categories-tab.php'; ?>
 <?php elseif ($activeTab === 'database'): ?>
     <?php require __DIR__ . '/includes/admin-database-tab.php'; ?>
 <?php else: ?>

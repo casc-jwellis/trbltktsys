@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($old['description'] === '') {
         $errors[] = 'Please describe the issue.';
     }
-    if (!in_array($old['category'], TICKET_CATEGORIES, true)) {
+    if (!in_array($old['category'], category_names(), true)) {
         $errors[] = 'Please choose a valid category.';
     }
     if (!in_array($old['priority'], TICKET_PRIORITIES, true)) {
@@ -127,7 +127,7 @@ require __DIR__ . '/includes/header.php';
                     <div class="col-md-6">
                         <label class="form-label" for="category">Category</label>
                         <select class="form-select" id="category" name="category">
-                            <?php foreach (TICKET_CATEGORIES as $category): ?>
+                            <?php foreach (category_names() as $category): ?>
                                 <option value="<?= e($category) ?>" <?= $old['category'] === $category ? 'selected' : '' ?>><?= e($category) ?></option>
                             <?php endforeach; ?>
                         </select>
