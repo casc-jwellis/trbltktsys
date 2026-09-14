@@ -24,6 +24,14 @@ if (!is_admin() && !user_can_view_ticket($id, current_user_id())) {
     exit;
 }
 
+$stmt = db()->prepare('SELECT name, email, phone FROM requesters WHERE email = ?');
+$stmt->execute([$ticket['requester_email']]);
+$requester = $stmt->fetch();
+
+$stmt = db()->prepare('SELECT COUNT(*) FROM tickets WHERE requester_email = ?');
+$stmt->execute([$ticket['requester_email']]);
+$requesterTicketCount = (int) $stmt->fetchColumn();
+
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -125,6 +133,7 @@ require __DIR__ . '/includes/header.php';
     </div>
     <div class="card-body p-4">
         <h1 class="h4"><?= e($ticket['subject']) ?></h1>
+        <button type="button" class="btn btn-outline-secondary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#requesterInfoModal">User Information</button>
         <p class="text-body-secondary mb-4">
             Submitted by <?= e($ticket['requester_name']) ?>
             (<a href="mailto:<?= e($ticket['requester_email']) ?>"><?= e($ticket['requester_email']) ?></a><?php if (!empty($ticket['requester_phone'])): ?>,
@@ -302,5 +311,40 @@ require __DIR__ . '/includes/header.php';
     </div>
 </div>
 <?php endif; ?>
+
+<div class="modal fade" id="requesterInfoModal" tabindex="-1" aria-labelledby="requesterInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="requesterInfoModalLabel">User Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row mb-0">
+                    <dt class="col-5">Name</dt>
+                    <dd class="col-7"><?= e($requester['name'] ?? $ticket['requester_name']) ?></dd>
+
+                    <dt class="col-5">Email</dt>
+                    <dd class="col-7"><a href="mailto:<?= e($requester['email'] ?? $ticket['requester_email']) ?>"><?= e($requester['email'] ?? $ticket['requester_email']) ?></a></dd>
+
+                    <dt class="col-5">Phone</dt>
+                    <dd class="col-7">
+                        <?php if (!empty($requester['phone'])): ?>
+                            <a href="tel:<?= e($requester['phone']) ?>"><?= e($requester['phone']) ?></a>
+                        <?php else: ?>
+                            <span class="text-body-secondary">—</span>
+                        <?php endif; ?>
+                    </dd>
+
+                    <dt class="col-5">Tickets Submitted</dt>
+                    <dd class="col-7 mb-0"><?= $requesterTicketCount ?></dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>
