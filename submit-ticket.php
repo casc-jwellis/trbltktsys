@@ -39,10 +39,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Please choose a valid priority.';
     }
 
+    $attachmentPath = null;
+    if (!$errors) {
+        try {
+            $attachmentPath = store_ticket_attachment($_FILES['screenshot'] ?? []);
+        } catch (InvalidArgumentException $e) {
+            $errors[] = $e->getMessage();
+        }
+    }
+
     if (!$errors) {
         $stmt = db()->prepare(
-            'INSERT INTO tickets (requester_name, requester_email, subject, description, category, priority, status)
-             VALUES (?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO tickets (requester_name, requester_email, subject, description, category, priority, status, attachment_path)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $stmt->execute([
             $old['requester_name'],
@@ -52,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $old['category'],
             $old['priority'],
             'Open',
+            $attachmentPath,
         ]);
 
         header('Location: ticket-submitted.php?id=' . db()->lastInsertId());
@@ -81,7 +91,7 @@ require __DIR__ . '/includes/header.php';
 
     <div class="card">
         <div class="card-body p-4">
-            <form method="post" novalidate>
+            <form method="post" enctype="multipart/form-data" novalidate>
                 <?= csrf_field() ?>
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -115,6 +125,11 @@ require __DIR__ . '/includes/header.php';
                     <div class="col-12">
                         <label class="form-label" for="description">Describe the Issue</label>
                         <textarea class="form-control" id="description" name="description" rows="5" required><?= e($old['description']) ?></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="screenshot">Screenshot (optional)</label>
+                        <input type="file" class="form-control" id="screenshot" name="screenshot" accept="image/png,image/jpeg,image/gif,image/webp">
+                        <div class="form-text">PNG, JPEG, GIF, or WEBP. 5 MB max.</div>
                     </div>
                 </div>
                 <div class="d-grid mt-4">
