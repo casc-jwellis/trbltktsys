@@ -158,22 +158,30 @@ require __DIR__ . '/includes/header.php';
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         Respond &amp; Manage Ticket
-        <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#internalNoteModal">+ Add Internal Note</button>
-    </div>
-    <div class="card-body p-4">
-        <div class="mb-4 pb-4 border-bottom d-flex justify-content-between align-items-start flex-wrap gap-2">
-            <div>
-                <div class="fw-semibold small text-body-secondary mb-1">Assigned To</div>
-                <?php if (!$assigneeNames): ?>
-                    <span class="text-body-secondary">Unassigned</span>
-                <?php else: ?>
-                    <?php foreach ($assigneeNames as $name): ?>
-                        <span class="badge text-bg-secondary me-1"><?= e($name) ?></span>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </div>
+        <div class="d-flex align-items-center gap-2">
             <?php if (ticket_assignments_supported()): ?>
                 <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#reassignModal">Reassign</button>
+                <span
+                    class="text-body-secondary"
+                    style="cursor: help;"
+                    tabindex="0"
+                    data-bs-toggle="tooltip"
+                    data-bs-placement="bottom"
+                    title="<?= e($assigneeNames ? implode(', ', $assigneeNames) : 'Unassigned') ?>"
+                >&#9432;<span class="visually-hidden">Assigned agents</span></span>
+            <?php endif; ?>
+            <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#internalNoteModal">+ Add Internal Note</button>
+        </div>
+    </div>
+    <div class="card-body p-4">
+        <div class="mb-4 pb-4 border-bottom">
+            <div class="fw-semibold small text-body-secondary mb-1">Assigned To</div>
+            <?php if (!$assigneeNames): ?>
+                <span class="text-body-secondary">Unassigned</span>
+            <?php else: ?>
+                <?php foreach ($assigneeNames as $name): ?>
+                    <span class="badge text-bg-secondary me-1"><?= e($name) ?></span>
+                <?php endforeach; ?>
             <?php endif; ?>
         </div>
         <?php if (!ticket_assignments_supported()): ?>
