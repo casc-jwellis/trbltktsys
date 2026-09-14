@@ -105,7 +105,14 @@ require __DIR__ . '/includes/header.php';
 <?php endif; ?>
 
 <div class="card mb-4">
-    <div class="card-header">Ticket #<?= (int) $ticket['id'] ?></div>
+    <div class="card-header d-flex justify-content-between align-items-center gap-2">
+        <span>Ticket #<?= (int) $ticket['id'] ?></span>
+        <select class="form-select form-select-sm w-auto" name="priority" form="manageTicketForm" aria-label="Priority">
+            <?php foreach (TICKET_PRIORITIES as $priority): ?>
+                <option value="<?= e($priority) ?>" <?= $ticket['priority'] === $priority ? 'selected' : '' ?>><?= e($priority) ?></option>
+            <?php endforeach; ?>
+        </select>
+    </div>
     <div class="card-body p-4">
         <h1 class="h4"><?= e($ticket['subject']) ?></h1>
         <p class="text-body-secondary mb-4">
@@ -172,30 +179,20 @@ require __DIR__ . '/includes/header.php';
         <?php if (!ticket_assignments_supported()): ?>
             <div class="alert alert-warning small">Ticket assignment is unavailable until an administrator visits <a href="migrate.php">migrate.php</a> to update the database.</div>
         <?php endif; ?>
-        <form method="post">
+        <form method="post" id="manageTicketForm">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="manage_ticket">
             <div class="mb-3">
                 <label class="form-label" for="response">Response to Submitter</label>
                 <textarea class="form-control" id="response" name="response" rows="4" placeholder="Type a reply the submitter will see..."></textarea>
             </div>
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label" for="status">Status</label>
-                    <select class="form-select" id="status" name="status">
-                        <?php foreach (TICKET_STATUSES as $status): ?>
-                            <option value="<?= e($status) ?>" <?= $ticket['status'] === $status ? 'selected' : '' ?>><?= e($status) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label" for="priority">Priority</label>
-                    <select class="form-select" id="priority" name="priority">
-                        <?php foreach (TICKET_PRIORITIES as $priority): ?>
-                            <option value="<?= e($priority) ?>" <?= $ticket['priority'] === $priority ? 'selected' : '' ?>><?= e($priority) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
+            <div class="mb-3">
+                <label class="form-label" for="status">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <?php foreach (TICKET_STATUSES as $status): ?>
+                        <option value="<?= e($status) ?>" <?= $ticket['status'] === $status ? 'selected' : '' ?>><?= e($status) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             <div class="d-grid mt-4">
                 <button type="submit" class="btn btn-primary">Save Changes</button>
