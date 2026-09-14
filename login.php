@@ -15,12 +15,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $username = trim((string) ($_POST['username'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
 
-        if (attempt_login($username, $password)) {
+        $result = attempt_login($username, $password);
+        if ($result === 'ok') {
             header('Location: dashboard.php');
             exit;
         }
 
-        $error = 'Invalid username or password.';
+        $error = $result === 'locked'
+            ? 'This account has been locked. Contact an administrator.'
+            : 'Invalid username or password.';
     }
 }
 

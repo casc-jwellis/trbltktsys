@@ -28,6 +28,9 @@ $user = current_user();
             <ul class="navbar-nav ms-auto align-items-md-center gap-md-2">
                 <?php if ($user): ?>
                     <li class="nav-item"><a class="nav-link" href="dashboard.php">Tickets</a></li>
+                    <?php if (is_admin()): ?>
+                        <li class="nav-item"><a class="nav-link" href="admin-settings.php">Admin Settings</a></li>
+                    <?php endif; ?>
                     <li class="nav-item"><span class="nav-link text-body-secondary">Hi, <?= e($user['full_name']) ?></span></li>
                     <li class="nav-item"><a class="btn btn-outline-secondary btn-sm" href="logout.php">Log out</a></li>
                 <?php else: ?>

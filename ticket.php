@@ -39,7 +39,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$agents = db()->query('SELECT id, full_name FROM users ORDER BY full_name')->fetchAll();
+$stmt = db()->prepare(
+    'SELECT id, full_name FROM users WHERE is_locked = 0 OR id = ? ORDER BY full_name'
+);
+$stmt->execute([$ticket['assigned_to']]);
+$agents = $stmt->fetchAll();
 
 $pageTitle = 'Ticket #' . $id;
 require __DIR__ . '/includes/header.php';
