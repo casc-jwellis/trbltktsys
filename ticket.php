@@ -81,16 +81,28 @@ $agents = assignable_users($assignedUserIds);
 $groups = assignable_groups();
 $comments = ticket_comments($id);
 
-$assigneeNames = array_merge(
-    array_values(array_intersect_key(
-        array_column($agents, 'full_name', 'id'),
-        array_flip($assignedUserIds)
-    )),
-    array_values(array_intersect_key(
-        array_column($groups, 'name', 'id'),
-        array_flip($assignedGroupIds)
-    ))
-);
+$assignedUserNames = array_values(array_intersect_key(
+    array_column($agents, 'full_name', 'id'),
+    array_flip($assignedUserIds)
+));
+$assignedGroupNames = array_values(array_intersect_key(
+    array_column($groups, 'name', 'id'),
+    array_flip($assignedGroupIds)
+));
+$assigneeNames = array_merge($assignedUserNames, $assignedGroupNames);
+
+$assigneeTooltipHtml = '<div class="text-start"><div class="fw-semibold border-bottom pb-1 mb-1">Assigned To</div>';
+if (!$assignedUserNames && !$assignedGroupNames) {
+    $assigneeTooltipHtml .= '<div>Unassigned</div>';
+} else {
+    if ($assignedUserNames) {
+        $assigneeTooltipHtml .= '<div>Users: ' . e(implode(', ', $assignedUserNames)) . '</div>';
+    }
+    if ($assignedGroupNames) {
+        $assigneeTooltipHtml .= '<div>Groups: ' . e(implode(', ', $assignedGroupNames)) . '</div>';
+    }
+}
+$assigneeTooltipHtml .= '</div>';
 
 $pageTitle = 'Ticket #' . $id;
 require __DIR__ . '/includes/header.php';
@@ -159,18 +171,26 @@ require __DIR__ . '/includes/header.php';
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         Respond &amp; Manage Ticket
         <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#internalNoteModal">+ Add Internal Note</button>
             <?php if (ticket_assignments_supported()): ?>
                 <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#reassignModal">Reassign</button>
                 <span
-                    class="text-body-secondary"
+                    class="text-body-secondary d-inline-flex"
                     style="cursor: help;"
                     tabindex="0"
                     data-bs-toggle="tooltip"
+                    data-bs-html="true"
                     data-bs-placement="bottom"
-                    title="<?= e($assigneeNames ? implode(', ', $assigneeNames) : 'Unassigned') ?>"
-                >&#9432;<span class="visually-hidden">Assigned agents</span></span>
+                    title="<?= e($assigneeTooltipHtml) ?>"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <circle cx="8" cy="8" r="6.5"></circle>
+                        <line x1="8" y1="7.25" x2="8" y2="11.25"></line>
+                        <circle cx="8" cy="5" r="0.75" fill="currentColor" stroke="none"></circle>
+                    </svg>
+                    <span class="visually-hidden">Assigned agents</span>
+                </span>
             <?php endif; ?>
-            <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#internalNoteModal">+ Add Internal Note</button>
         </div>
     </div>
     <div class="card-body p-4">
