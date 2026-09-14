@@ -15,15 +15,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $username = trim((string) ($_POST['username'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
 
-        $result = attempt_login($username, $password);
+        try {
+            $result = attempt_login($username, $password);
+        } catch (PDOException $e) {
+            $result = 'schema-error';
+        }
+
         if ($result === 'ok') {
             header('Location: dashboard.php');
             exit;
         }
 
-        $error = $result === 'locked'
-            ? 'This account has been locked. Contact an administrator.'
-            : 'Invalid username or password.';
+        $error = match ($result) {
+            'locked'       => 'This account has been locked. Contact an administrator.',
+            'schema-error' => 'The database is out of date. An administrator should visit migrate.php to update it.',
+            default        => 'Invalid username or password.',
+        };
     }
 }
 

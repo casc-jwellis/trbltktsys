@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS roles (
     name VARCHAR(30) NOT NULL UNIQUE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO roles (name) VALUES ('Administrator'), ('Helpdesk Agent');
+INSERT IGNORE INTO roles (name) VALUES ('Administrator'), ('Helpdesk Agent');
 
 CREATE TABLE IF NOT EXISTS user_roles (
     user_id INT UNSIGNED NOT NULL,
