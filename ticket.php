@@ -4,7 +4,12 @@ require_login();
 
 $id = (int) ($_GET['id'] ?? 0);
 
-$stmt = db()->prepare('SELECT * FROM tickets WHERE id = ?');
+$stmt = db()->prepare(
+    'SELECT t.*, r.phone AS requester_phone
+     FROM tickets t
+     LEFT JOIN requesters r ON r.email = t.requester_email
+     WHERE t.id = ?'
+);
 $stmt->execute([$id]);
 $ticket = $stmt->fetch();
 
@@ -65,7 +70,8 @@ require __DIR__ . '/includes/header.php';
                 <h1 class="h4"><?= e($ticket['subject']) ?></h1>
                 <p class="text-body-secondary mb-4">
                     Submitted by <?= e($ticket['requester_name']) ?>
-                    (<a href="mailto:<?= e($ticket['requester_email']) ?>"><?= e($ticket['requester_email']) ?></a>)
+                    (<a href="mailto:<?= e($ticket['requester_email']) ?>"><?= e($ticket['requester_email']) ?></a><?php if (!empty($ticket['requester_phone'])): ?>,
+                    <a href="tel:<?= e($ticket['requester_phone']) ?>"><?= e($ticket['requester_phone']) ?></a><?php endif; ?>)
                     on <?= e(date('M j, Y g:i A', strtotime($ticket['created_at']))) ?>
                 </p>
                 <p style="white-space: pre-wrap;"><?= e($ticket['description']) ?></p>

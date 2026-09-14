@@ -2,7 +2,9 @@
 
 A simple PHP trouble ticket system.
 
-- **Ticket submission** (`submit-ticket.php`) — public, no login required.
+- **Ticket submission** (`submit-ticket.php`) — public, no login required. Each submission
+  upserts a `requesters` record (keyed by email, with name and optional phone) so submitters
+  can be tracked across tickets.
 - **Helpdesk login** (`login.php`) — session-based auth for staff.
 - **Ticket queue & management** (`dashboard.php`, `ticket.php`) — staff-only, requires login.
 - **Admin settings** (`admin-settings.php`) — Administrator-only. Create, edit, lock, or remove

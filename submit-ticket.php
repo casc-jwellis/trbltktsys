@@ -5,6 +5,7 @@ $errors = [];
 $old = [
     'requester_name'  => '',
     'requester_email' => '',
+    'requester_phone' => '',
     'subject'         => '',
     'description'     => '',
     'category'        => 'General',
@@ -25,6 +26,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if (!filter_var($old['requester_email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Please enter a valid email address.';
+    }
+    if (strlen($old['requester_phone']) > 30) {
+        $errors[] = 'Phone number is too long (30 characters max).';
     }
     if ($old['subject'] === '') {
         $errors[] = 'Please enter a subject.';
@@ -49,6 +53,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$errors) {
+        $phone = $old['requester_phone'] !== '' ? $old['requester_phone'] : null;
+
+        db()->beginTransaction();
+
+        $stmt = db()->prepare(
+            'INSERT INTO requesters (email, name, phone) VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE name = VALUES(name), phone = COALESCE(VALUES(phone), phone)'
+        );
+        $stmt->execute([$old['requester_email'], $old['requester_name'], $phone]);
+
         $stmt = db()->prepare(
             'INSERT INTO tickets (requester_name, requester_email, subject, description, category, priority, status, attachment_path)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
@@ -63,8 +77,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'Open',
             $attachmentPath,
         ]);
+        $newTicketId = db()->lastInsertId();
 
-        header('Location: ticket-submitted.php?id=' . db()->lastInsertId());
+        db()->commit();
+
+        header('Location: ticket-submitted.php?id=' . $newTicketId);
         exit;
     }
 }
@@ -94,13 +111,17 @@ require __DIR__ . '/includes/header.php';
             <form method="post" enctype="multipart/form-data" novalidate>
                 <?= csrf_field() ?>
                 <div class="row g-3">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label" for="requester_name">Your Name</label>
                         <input class="form-control" id="requester_name" name="requester_name" required value="<?= e($old['requester_name']) ?>">
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <label class="form-label" for="requester_email">Email Address</label>
                         <input type="email" class="form-control" id="requester_email" name="requester_email" required value="<?= e($old['requester_email']) ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="requester_phone">Phone <span class="text-body-secondary">(optional)</span></label>
+                        <input class="form-control" id="requester_phone" name="requester_phone" maxlength="30" value="<?= e($old['requester_phone']) ?>">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="category">Category</label>

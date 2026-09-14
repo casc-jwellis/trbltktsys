@@ -30,6 +30,16 @@ function column_exists(string $table, string $column): bool
     return (int) $stmt->fetchColumn() > 0;
 }
 
+function table_exists(string $table): bool
+{
+    $stmt = db()->prepare(
+        'SELECT COUNT(*) FROM information_schema.TABLES
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?'
+    );
+    $stmt->execute([$table]);
+    return (int) $stmt->fetchColumn() > 0;
+}
+
 /**
  * Every migration this app has ever shipped, in order, with a check that
  * tells us whether its effect is already present in the database — rather
@@ -54,6 +64,11 @@ function available_migrations(): array
             'label'   => 'Ticket screenshot attachments',
             'applied' => fn (): bool => column_exists('tickets', 'attachment_path'),
         ],
+        [
+            'file'    => '004_requesters.sql',
+            'label'   => 'Ticket requester directory',
+            'applied' => fn (): bool => table_exists('requesters'),
+        ],
     ];
 }
 
@@ -77,6 +92,10 @@ function run_migration(string $filename): void
 function run_sql_file(string $path): void
 {
     $sql = file_get_contents($path);
+    // Strip `--` line comments first so a semicolon written in prose (e.g.
+    // "existing rows; back them up first") can't be mistaken for a statement
+    // boundary by the naive split below.
+    $sql = preg_replace('/--[^\n]*/', '', $sql);
     $statements = array_filter(array_map('trim', explode(';', $sql)));
 
     $pdo = db();
