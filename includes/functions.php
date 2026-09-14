@@ -62,7 +62,8 @@ function app_name(): string
 {
     static $config = null;
     if ($config === null) {
-        $config = require __DIR__ . '/../config/config.php';
+        $path = __DIR__ . '/../config/config.php';
+        $config = file_exists($path) ? require $path : [];
     }
     return $config['app']['name'] ?? 'Helpdesk';
 }
