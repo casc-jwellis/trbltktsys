@@ -18,6 +18,12 @@ if (!$ticket) {
     exit;
 }
 
+if (!is_admin() && !user_can_view_ticket($id, current_user_id())) {
+    flash('error', 'You do not have permission to view that ticket.');
+    header('Location: dashboard.php');
+    exit;
+}
+
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

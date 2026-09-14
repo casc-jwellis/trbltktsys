@@ -5,19 +5,35 @@ require_login();
 $statusFilter = $_GET['status'] ?? '';
 $categoryFilter = $_GET['category'] ?? '';
 
+$assignmentsSupported = ticket_assignments_supported();
+$isAdmin = is_admin();
+
 $where = [];
 $params = [];
 
 if (in_array($statusFilter, TICKET_STATUSES, true)) {
-    $where[] = 'status = ?';
+    $where[] = 't.status = ?';
     $params[] = $statusFilter;
 }
 if (in_array($categoryFilter, category_names(), true)) {
-    $where[] = 'category = ?';
+    $where[] = 't.category = ?';
     $params[] = $categoryFilter;
 }
 
-$assignmentsSupported = ticket_assignments_supported();
+// Agents only see tickets assigned to them (directly or via one of their
+// groups); administrators see everything.
+if (!$isAdmin) {
+    if ($assignmentsSupported) {
+        $where[] = '(t.id IN (SELECT ticket_id FROM ticket_assigned_users WHERE user_id = ?)
+                     OR t.id IN (SELECT ticket_id FROM ticket_assigned_groups WHERE group_id IN (
+                         SELECT group_id FROM user_agent_groups WHERE user_id = ?)))';
+        $params[] = current_user_id();
+        $params[] = current_user_id();
+    } else {
+        // Can't tell what's assigned to this agent yet — show nothing rather than everything.
+        $where[] = '1 = 0';
+    }
+}
 
 if ($assignmentsSupported) {
     $sql = 'SELECT t.*,
@@ -33,7 +49,7 @@ if ($assignmentsSupported) {
     $sql = 'SELECT t.*, NULL AS assigned_user_names, NULL AS assigned_group_names FROM tickets t';
 }
 if ($where) {
-    $sql .= ' WHERE ' . implode(' AND ', array_map(fn (string $clause): string => 't.' . $clause, $where));
+    $sql .= ' WHERE ' . implode(' AND ', $where);
 }
 if ($assignmentsSupported) {
     $sql .= ' GROUP BY t.id';

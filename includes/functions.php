@@ -92,6 +92,28 @@ function ticket_assigned_group_ids(int $ticketId): array
     return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
 }
 
+/**
+ * Whether a user can view a ticket: assigned to them directly, assigned to
+ * one of their groups, or (for admins) always. Fails closed if the
+ * assignment tables aren't there yet (pending migration).
+ */
+function user_can_view_ticket(int $ticketId, int $userId): bool
+{
+    if (in_array($userId, ticket_assigned_user_ids($ticketId), true)) {
+        return true;
+    }
+
+    $groupIds = ticket_assigned_group_ids($ticketId);
+    if (!$groupIds) {
+        return false;
+    }
+
+    $placeholders = implode(',', array_fill(0, count($groupIds), '?'));
+    $stmt = db()->prepare("SELECT COUNT(*) FROM user_agent_groups WHERE user_id = ? AND group_id IN ({$placeholders})");
+    $stmt->execute([$userId, ...$groupIds]);
+    return (int) $stmt->fetchColumn() > 0;
+}
+
 /** Filters submitted group/category/user IDs down to ones that actually exist. */
 function valid_ids_from_post(array $submitted, array $validRows): array
 {
