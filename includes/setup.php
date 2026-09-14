@@ -84,6 +84,11 @@ function available_migrations(): array
             'label'   => 'Multi user/group ticket assignment',
             'applied' => fn (): bool => table_exists('ticket_assigned_users'),
         ],
+        [
+            'file'    => '008_ticket_comments.sql',
+            'label'   => 'Ticket response/internal note thread',
+            'applied' => fn (): bool => table_exists('ticket_comments'),
+        ],
     ];
 }
 

@@ -8,7 +8,11 @@ A simple PHP trouble ticket system.
 - **Helpdesk login** (`login.php`) — session-based auth for staff.
 - **Ticket queue & management** (`dashboard.php`, `ticket.php`) — staff-only, requires login. New
   tickets are auto-assigned to whichever users and groups are configured for their category;
-  staff can reassign a ticket to any combination of users and groups from the ticket page.
+  staff can reassign a ticket to any combination of users and groups from the ticket page. Agents
+  only see tickets assigned to them (directly or via a group); administrators see everything. Each
+  ticket has a chronological conversation thread — responses meant for the submitter, plus
+  internal notes (added via a separate modal so they can't be mixed up with a submitter-facing
+  response) that only staff can see.
 - **Admin settings** (`admin-settings.php`) — Administrator-only. Create, edit, lock, or remove
   helpdesk accounts (with an Administrator flag), assign groups and ticket categories to both
   users and groups, manage the category list itself, and (from the Database tab) purge all data.

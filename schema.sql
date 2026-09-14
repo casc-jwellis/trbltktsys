@@ -64,7 +64,6 @@ CREATE TABLE tickets (
     category         VARCHAR(30) NOT NULL DEFAULT 'General',
     priority         VARCHAR(10) NOT NULL DEFAULT 'Medium',
     status           VARCHAR(20) NOT NULL DEFAULT 'Open',
-    internal_notes   TEXT NULL,
     attachment_path  VARCHAR(255) NULL,
     created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -94,3 +93,19 @@ CREATE TABLE ticket_assigned_groups (
     CONSTRAINT fk_ticket_assigned_groups_ticket FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
     CONSTRAINT fk_ticket_assigned_groups_group FOREIGN KEY (group_id) REFERENCES agent_groups(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- The ticket conversation: agent responses meant for the submitter, and
+-- internal notes meant only for other staff. Replaces the old single
+-- tickets.internal_notes field with a proper chronological thread.
+CREATE TABLE ticket_comments (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    ticket_id   INT UNSIGNED NOT NULL,
+    user_id     INT UNSIGNED NULL,
+    body        TEXT NOT NULL,
+    is_internal TINYINT(1) NOT NULL DEFAULT 0,
+    created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ticket_comments_ticket FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+    CONSTRAINT fk_ticket_comments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_ticket_comments_ticket ON ticket_comments(ticket_id);

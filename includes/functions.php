@@ -143,6 +143,47 @@ function save_ticket_assignments(int $ticketId, array $userIds, array $groupIds)
     }
 }
 
+/** Whether the ticket_comments table exists yet (migration 008). */
+function ticket_comments_supported(): bool
+{
+    static $result = null;
+    if ($result === null) {
+        $result = table_exists('ticket_comments');
+    }
+    return $result;
+}
+
+/**
+ * A ticket's conversation thread in chronological order: agent responses
+ * meant for the submitter, and internal notes meant only for other staff.
+ */
+function ticket_comments(int $ticketId): array
+{
+    if (!ticket_comments_supported()) {
+        return [];
+    }
+    $stmt = db()->prepare(
+        'SELECT tc.id, tc.body, tc.is_internal, tc.created_at, u.full_name AS author_name
+         FROM ticket_comments tc
+         LEFT JOIN users u ON u.id = tc.user_id
+         WHERE tc.ticket_id = ?
+         ORDER BY tc.created_at ASC, tc.id ASC'
+    );
+    $stmt->execute([$ticketId]);
+    return $stmt->fetchAll();
+}
+
+function add_ticket_comment(int $ticketId, int $userId, string $body, bool $isInternal): void
+{
+    if (!ticket_comments_supported()) {
+        return;
+    }
+    $stmt = db()->prepare(
+        'INSERT INTO ticket_comments (ticket_id, user_id, body, is_internal) VALUES (?, ?, ?, ?)'
+    );
+    $stmt->execute([$ticketId, $userId, $body, $isInternal ? 1 : 0]);
+}
+
 const ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
 const ATTACHMENT_MIME_EXTENSIONS = [
     'image/png'  => 'png',
