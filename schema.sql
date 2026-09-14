@@ -17,6 +17,7 @@ CREATE TABLE tickets (
     status           VARCHAR(20) NOT NULL DEFAULT 'Open',
     assigned_to      INT UNSIGNED NULL,
     internal_notes   TEXT NULL,
+    attachment_path  VARCHAR(255) NULL,
     created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_tickets_assigned_to FOREIGN KEY (assigned_to) REFERENCES users(id) ON DELETE SET NULL

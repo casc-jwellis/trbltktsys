@@ -65,6 +65,13 @@ require __DIR__ . '/includes/header.php';
                     on <?= e(date('M j, Y g:i A', strtotime($ticket['created_at']))) ?>
                 </p>
                 <p style="white-space: pre-wrap;"><?= e($ticket['description']) ?></p>
+                <?php if (!empty($ticket['attachment_path'])): ?>
+                    <hr>
+                    <p class="fw-semibold mb-2">Screenshot</p>
+                    <a href="<?= e($ticket['attachment_path']) ?>" target="_blank" rel="noopener">
+                        <img src="<?= e($ticket['attachment_path']) ?>" alt="Screenshot attached to ticket #<?= (int) $ticket['id'] ?>" class="img-fluid rounded border" style="max-height: 400px;">
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
     </div>

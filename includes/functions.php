@@ -4,6 +4,55 @@ const TICKET_CATEGORIES = ['General', 'Hardware', 'Software', 'Network', 'Accoun
 const TICKET_PRIORITIES = ['Low', 'Medium', 'High', 'Urgent'];
 const TICKET_STATUSES   = ['Open', 'In Progress', 'Resolved', 'Closed'];
 
+const ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
+const ATTACHMENT_MIME_EXTENSIONS = [
+    'image/png'  => 'png',
+    'image/jpeg' => 'jpg',
+    'image/gif'  => 'gif',
+    'image/webp' => 'webp',
+];
+
+/**
+ * Validates and stores an uploaded screenshot from a $_FILES entry.
+ * Returns the stored relative path on success, or null if no file was
+ * uploaded. Throws InvalidArgumentException on a validation failure.
+ */
+function store_ticket_attachment(array $file): ?string
+{
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        throw new InvalidArgumentException('The screenshot failed to upload. Please try again.');
+    }
+
+    if (!is_uploaded_file($file['tmp_name'])) {
+        throw new InvalidArgumentException('The screenshot failed to upload. Please try again.');
+    }
+
+    if ($file['size'] > ATTACHMENT_MAX_BYTES) {
+        throw new InvalidArgumentException('The screenshot is too large (5 MB max).');
+    }
+
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
+    if (!isset(ATTACHMENT_MIME_EXTENSIONS[$mime])) {
+        throw new InvalidArgumentException('The screenshot must be a PNG, JPEG, GIF, or WEBP image.');
+    }
+
+    $uploadDir = __DIR__ . '/../uploads';
+    if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+        throw new InvalidArgumentException('The screenshot failed to upload. Please try again.');
+    }
+
+    $filename = bin2hex(random_bytes(16)) . '.' . ATTACHMENT_MIME_EXTENSIONS[$mime];
+    if (!move_uploaded_file($file['tmp_name'], $uploadDir . '/' . $filename)) {
+        throw new InvalidArgumentException('The screenshot failed to upload. Please try again.');
+    }
+
+    return 'uploads/' . $filename;
+}
+
 function e(?string $value): string
 {
     return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');

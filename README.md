@@ -14,7 +14,13 @@ A simple PHP trouble ticket system.
    ```
    php create-user.php <username> "<Full Name>"
    ```
-4. Point your web server (or `php -S localhost:8000`) at the project root.
+4. Make sure the `uploads/` directory is writable by the web server — it stores screenshots attached to submitted tickets.
+5. Point your web server (or `php -S localhost:8000`) at the project root.
+
+Upgrading an existing database? Add the new attachment column:
+```sql
+ALTER TABLE tickets ADD COLUMN attachment_path VARCHAR(255) NULL AFTER internal_notes;
+```
 
 ## Stack
 
