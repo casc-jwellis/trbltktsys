@@ -114,7 +114,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['stage'] ?? '') === $stage)
         if ($old['full_name'] === '') {
             $errors[] = 'Please enter your full name.';
         }
-        if ($old['email'] !== '' && !filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
+        if (!filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'Please enter a valid email address.';
         }
         if (strlen($old['phone']) > 30) {
@@ -136,7 +136,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['stage'] ?? '') === $stage)
                 $old['username'],
                 password_hash($password, PASSWORD_DEFAULT),
                 $old['full_name'],
-                $old['email'] !== '' ? $old['email'] : null,
+                $old['email'],
                 $old['phone'] !== '' ? $old['phone'] : null,
             ]);
             $userId = (int) $pdo->lastInsertId();
@@ -259,8 +259,8 @@ require __DIR__ . '/includes/header.php';
                     </div>
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label" for="email">Email <span class="text-body-secondary">(optional)</span></label>
-                            <input type="email" class="form-control" id="email" name="email" value="<?= e($old['email']) ?>">
+                            <label class="form-label" for="email">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required value="<?= e($old['email']) ?>">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="phone">Phone <span class="text-body-secondary">(optional)</span></label>

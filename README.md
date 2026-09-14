@@ -24,7 +24,7 @@ Any page will redirect you into `install.php` until setup is finished. The insta
 
 1. **Database credentials** — enter your host/port/database/username/password; the connection is tested before anything is saved to `config/config.php`.
 2. **Tables** — creates the `tickets`, `users`, `roles`, and `agent_groups` tables (and their join tables) from `schema.sql` with one click.
-3. **First admin account** — create the helpdesk staff login you'll use going forward, with an optional email and phone number. This account is granted both the Administrator and Helpdesk Agent roles, so it can manage tickets and access Admin Settings immediately.
+3. **First admin account** — create the helpdesk staff login you'll use going forward, with a required email and optional phone number. This account is granted both the Administrator and Helpdesk Agent roles, so it can manage tickets and access Admin Settings immediately.
 
 Once an admin account exists, `install.php` locks itself out (it redirects to `login.php`) so it can't be used to re-run setup or create more accounts later. Additional staff accounts — and their roles (Administrator / Helpdesk Agent) and groups — are managed from the **Admin Settings** panel (Administrator-only). There's no CLI for creating accounts; the web installer and Admin Settings panel are the only ways in.
 

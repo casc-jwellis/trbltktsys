@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($fullName === '') {
             $errors[] = 'Please enter a full name.';
         }
-        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'Please enter a valid email address.';
         }
         if (strlen($phone) > 30) {
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $username,
                     password_hash($password, PASSWORD_DEFAULT),
                     $fullName,
-                    $email !== '' ? $email : null,
+                    $email,
                     $phone !== '' ? $phone : null,
                 ]);
                 $newUserId = (int) db()->lastInsertId();
@@ -118,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($fullName === '') {
             $errors[] = 'Please enter a full name.';
         }
-        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'Please enter a valid email address.';
         }
         if (strlen($phone) > 30) {
@@ -142,7 +142,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 db()->beginTransaction();
 
-                $email = $email !== '' ? $email : null;
                 $phone = $phone !== '' ? $phone : null;
 
                 if ($newPassword !== '') {
