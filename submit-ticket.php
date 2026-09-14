@@ -111,11 +111,11 @@ require __DIR__ . '/includes/header.php';
             <form method="post" enctype="multipart/form-data" novalidate>
                 <?= csrf_field() ?>
                 <div class="row g-3">
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="form-label" for="requester_name">Your Name</label>
                         <input class="form-control" id="requester_name" name="requester_name" required value="<?= e($old['requester_name']) ?>">
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <label class="form-label" for="requester_email">Email Address</label>
                         <input type="email" class="form-control" id="requester_email" name="requester_email" required value="<?= e($old['requester_email']) ?>">
                     </div>
@@ -123,6 +123,7 @@ require __DIR__ . '/includes/header.php';
                         <label class="form-label" for="requester_phone">Phone <span class="text-body-secondary">(optional)</span></label>
                         <input class="form-control" id="requester_phone" name="requester_phone" maxlength="30" value="<?= e($old['requester_phone']) ?>">
                     </div>
+                    <div class="w-100"></div>
                     <div class="col-md-6">
                         <label class="form-label" for="category">Category</label>
                         <select class="form-select" id="category" name="category">
