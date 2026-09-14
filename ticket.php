@@ -42,12 +42,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: ticket.php?id=' . $id);
                 exit;
             }
+        } elseif ($action === 'reassign_ticket') {
+            $userIds = valid_ids_from_post($_POST['assigned_users'] ?? [], assignable_users(ticket_assigned_user_ids($id)));
+            $groupIds = valid_ids_from_post($_POST['assigned_groups'] ?? [], assignable_groups());
+            save_ticket_assignments($id, $userIds, $groupIds);
+            flash('success', 'Ticket #' . $id . ' reassigned.');
+            header('Location: ticket.php?id=' . $id);
+            exit;
         } else {
             $status = (string) ($_POST['status'] ?? '');
             $priority = (string) ($_POST['priority'] ?? '');
             $response = trim((string) ($_POST['response'] ?? ''));
-            $userIds = valid_ids_from_post($_POST['assigned_users'] ?? [], assignable_users(ticket_assigned_user_ids($id)));
-            $groupIds = valid_ids_from_post($_POST['assigned_groups'] ?? [], assignable_groups());
 
             if (!in_array($status, TICKET_STATUSES, true) || !in_array($priority, TICKET_PRIORITIES, true)) {
                 $error = 'Please choose valid values.';
@@ -56,7 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $stmt = db()->prepare('UPDATE tickets SET status = ?, priority = ? WHERE id = ?');
                 $stmt->execute([$status, $priority, $id]);
-                save_ticket_assignments($id, $userIds, $groupIds);
                 if ($response !== '') {
                     add_ticket_comment($id, current_user_id(), $response, false);
                 }
@@ -76,6 +80,17 @@ $assignedGroupIds = ticket_assigned_group_ids($id);
 $agents = assignable_users($assignedUserIds);
 $groups = assignable_groups();
 $comments = ticket_comments($id);
+
+$assigneeNames = array_merge(
+    array_values(array_intersect_key(
+        array_column($agents, 'full_name', 'id'),
+        array_flip($assignedUserIds)
+    )),
+    array_values(array_intersect_key(
+        array_column($groups, 'name', 'id'),
+        array_flip($assignedGroupIds)
+    ))
+);
 
 $pageTitle = 'Ticket #' . $id;
 require __DIR__ . '/includes/header.php';
@@ -134,11 +149,29 @@ require __DIR__ . '/includes/header.php';
 </div>
 
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         Respond &amp; Manage Ticket
         <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#internalNoteModal">+ Add Internal Note</button>
     </div>
     <div class="card-body p-4">
+        <div class="mb-4 pb-4 border-bottom d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <div class="fw-semibold small text-body-secondary mb-1">Assigned To</div>
+                <?php if (!$assigneeNames): ?>
+                    <span class="text-body-secondary">Unassigned</span>
+                <?php else: ?>
+                    <?php foreach ($assigneeNames as $name): ?>
+                        <span class="badge text-bg-secondary me-1"><?= e($name) ?></span>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+            <?php if (ticket_assignments_supported()): ?>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#reassignModal">Reassign</button>
+            <?php endif; ?>
+        </div>
+        <?php if (!ticket_assignments_supported()): ?>
+            <div class="alert alert-warning small">Ticket assignment is unavailable until an administrator visits <a href="migrate.php">migrate.php</a> to update the database.</div>
+        <?php endif; ?>
         <form method="post">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="manage_ticket">
@@ -162,35 +195,6 @@ require __DIR__ . '/includes/header.php';
                             <option value="<?= e($priority) ?>" <?= $ticket['priority'] === $priority ? 'selected' : '' ?>><?= e($priority) ?></option>
                         <?php endforeach; ?>
                     </select>
-                </div>
-            </div>
-            <?php if (!ticket_assignments_supported()): ?>
-                <div class="alert alert-warning small mt-3 mb-0">Ticket assignment is unavailable until an administrator visits <a href="migrate.php">migrate.php</a> to update the database.</div>
-            <?php endif; ?>
-            <div class="row g-3 mt-0">
-                <div class="col-md-6">
-                    <label class="form-label d-block">Assigned Users</label>
-                    <?php if (!$agents): ?>
-                        <p class="text-body-secondary small mb-0">No agents available.</p>
-                    <?php endif; ?>
-                    <?php foreach ($agents as $agent): ?>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="assigned_users[]" value="<?= (int) $agent['id'] ?>" id="agent_<?= (int) $agent['id'] ?>" <?= in_array((int) $agent['id'], $assignedUserIds, true) ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="agent_<?= (int) $agent['id'] ?>"><?= e($agent['full_name']) ?></label>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label d-block">Assigned Groups</label>
-                    <?php if (!$groups): ?>
-                        <p class="text-body-secondary small mb-0">No groups available.</p>
-                    <?php endif; ?>
-                    <?php foreach ($groups as $group): ?>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="assigned_groups[]" value="<?= (int) $group['id'] ?>" id="group_<?= (int) $group['id'] ?>" <?= in_array((int) $group['id'], $assignedGroupIds, true) ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="group_<?= (int) $group['id'] ?>"><?= e($group['name']) ?></label>
-                        </div>
-                    <?php endforeach; ?>
                 </div>
             </div>
             <div class="d-grid mt-4">
@@ -222,5 +226,68 @@ require __DIR__ . '/includes/header.php';
         </div>
     </div>
 </div>
+
+<?php if (ticket_assignments_supported()): ?>
+<div class="modal fade" id="reassignModal" tabindex="-1" aria-labelledby="reassignModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="reassign_ticket">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reassignModalLabel">Reassign Ticket</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <label class="form-label">Assigned Users</label>
+                        <?php if (!$agents): ?>
+                            <p class="text-body-secondary small mb-0">No agents available.</p>
+                        <?php else: ?>
+                            <div class="assignment-picker">
+                                <div class="assignment-pills mb-2"></div>
+                                <input type="text" class="form-control form-control-sm assignment-search" placeholder="Search agents...">
+                                <div class="list-group assignment-dropdown"></div>
+                                <div class="assignment-options">
+                                    <?php foreach ($agents as $agent): ?>
+                                        <div class="form-check assignment-option">
+                                            <input class="form-check-input" type="checkbox" name="assigned_users[]" value="<?= (int) $agent['id'] ?>" id="agent_<?= (int) $agent['id'] ?>" <?= in_array((int) $agent['id'], $assignedUserIds, true) ? 'checked' : '' ?>>
+                                            <label class="form-check-label" for="agent_<?= (int) $agent['id'] ?>"><?= e($agent['full_name']) ?></label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Assigned Groups</label>
+                        <?php if (!$groups): ?>
+                            <p class="text-body-secondary small mb-0">No groups available.</p>
+                        <?php else: ?>
+                            <div class="assignment-picker">
+                                <div class="assignment-pills mb-2"></div>
+                                <input type="text" class="form-control form-control-sm assignment-search" placeholder="Search groups...">
+                                <div class="list-group assignment-dropdown"></div>
+                                <div class="assignment-options">
+                                    <?php foreach ($groups as $group): ?>
+                                        <div class="form-check assignment-option">
+                                            <input class="form-check-input" type="checkbox" name="assigned_groups[]" value="<?= (int) $group['id'] ?>" id="group_<?= (int) $group['id'] ?>" <?= in_array((int) $group['id'], $assignedGroupIds, true) ? 'checked' : '' ?>>
+                                            <label class="form-check-label" for="group_<?= (int) $group['id'] ?>"><?= e($group['name']) ?></label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>
