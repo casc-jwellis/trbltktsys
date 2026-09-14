@@ -1,10 +1,8 @@
 <?php
 /**
  * @var array $users
- * @var array $allRoles
  * @var array $allGroups
  * @var array $allCategories
- * @var array $userRoleMap
  * @var array $userGroupMap
  * @var array $userCategoryMap
  */
@@ -27,7 +25,7 @@ $myId = current_user_id();
                     <th>Username</th>
                     <th>Email</th>
                     <th>Phone</th>
-                    <th>Roles</th>
+                    <th>Admin</th>
                     <th>Groups</th>
                     <th>Categories</th>
                     <th>Status</th>
@@ -44,7 +42,7 @@ $myId = current_user_id();
                         <td><?= e($user['username']) ?></td>
                         <td><?= $user['email'] ? '<a href="mailto:' . e($user['email']) . '">' . e($user['email']) . '</a>' : '—' ?></td>
                         <td><?= e($user['phone'] ?: '—') ?></td>
-                        <td><?= e($user['role_names'] ?: '—') ?></td>
+                        <td><?= (int) $user['is_admin'] === 1 ? '<span class="badge text-bg-primary">Administrator</span>' : '—' ?></td>
                         <td><?= e($user['group_names'] ?: '—') ?></td>
                         <td><?= e($user['category_names'] ?: '—') ?></td>
                         <td>
@@ -130,15 +128,10 @@ $myId = current_user_id();
                             <input type="password" class="form-control" id="new_password_confirm" name="password_confirm" required minlength="8">
                         </div>
                     </div>
-                    <div class="mb-3 mt-3">
-                        <label class="form-label d-block">Roles</label>
-                        <?php foreach ($allRoles as $role): ?>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="checkbox" name="roles[]"
-                                       value="<?= (int) $role['id'] ?>" id="new_role_<?= (int) $role['id'] ?>">
-                                <label class="form-check-label" for="new_role_<?= (int) $role['id'] ?>"><?= e($role['name']) ?></label>
-                            </div>
-                        <?php endforeach; ?>
+                    <div class="mb-3 mt-3 form-check">
+                        <input class="form-check-input" type="checkbox" name="is_admin" value="1" id="new_is_admin">
+                        <label class="form-check-label" for="new_is_admin">Administrator</label>
+                        <div class="form-text">Grants full access to Admin Settings. Every account can already manage tickets.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label d-block">Groups</label>
@@ -179,7 +172,6 @@ $myId = current_user_id();
 <?php foreach ($users as $user): ?>
     <?php
     $uid = (int) $user['id'];
-    $userRoleIds = $userRoleMap[$uid] ?? [];
     $userGroupIds = $userGroupMap[$uid] ?? [];
     $userCategoryIds = $userCategoryMap[$uid] ?? [];
     ?>
@@ -218,16 +210,11 @@ $myId = current_user_id();
                             <input type="password" class="form-control" id="edit_password_<?= $uid ?>" name="new_password" minlength="8">
                             <div class="form-text">Leave blank to keep the current password.</div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label d-block">Roles</label>
-                            <?php foreach ($allRoles as $role): ?>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="roles[]"
-                                           value="<?= (int) $role['id'] ?>" id="edit_role_<?= $uid ?>_<?= (int) $role['id'] ?>"
-                                           <?= in_array((int) $role['id'], $userRoleIds, true) ? 'checked' : '' ?>>
-                                    <label class="form-check-label" for="edit_role_<?= $uid ?>_<?= (int) $role['id'] ?>"><?= e($role['name']) ?></label>
-                                </div>
-                            <?php endforeach; ?>
+                        <div class="mb-3 form-check">
+                            <input class="form-check-input" type="checkbox" name="is_admin" value="1" id="edit_is_admin_<?= $uid ?>"
+                                   <?= (int) $user['is_admin'] === 1 ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="edit_is_admin_<?= $uid ?>">Administrator</label>
+                            <div class="form-text">Grants full access to Admin Settings. Every account can already manage tickets.</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label d-block">Groups</label>

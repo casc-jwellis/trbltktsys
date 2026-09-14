@@ -5,14 +5,6 @@ require_admin();
 
 $activeTab = in_array($_GET['tab'] ?? '', ['groups', 'categories', 'database'], true) ? $_GET['tab'] : 'users';
 
-$allRoles = all_roles();
-$adminRoleId = null;
-foreach ($allRoles as $role) {
-    if ($role['name'] === 'Administrator') {
-        $adminRoleId = (int) $role['id'];
-    }
-}
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf()) {
         flash('error', 'Your session expired. Please try again.');
@@ -31,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $phone = trim((string) ($_POST['phone'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
         $passwordConfirm = (string) ($_POST['password_confirm'] ?? '');
-        $roleIds = valid_ids_from_post($_POST['roles'] ?? [], $allRoles);
+        $isAdmin = isset($_POST['is_admin']);
         $groupIds = valid_ids_from_post($_POST['groups'] ?? [], $allGroups);
         $categoryIds = valid_ids_from_post($_POST['categories'] ?? [], $allCategories);
 
@@ -54,16 +46,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($password !== $passwordConfirm) {
             $errors[] = 'Passwords do not match.';
         }
-        if (!$roleIds) {
-            $errors[] = 'Please select at least one role.';
-        }
 
         if (!$errors) {
             try {
                 db()->beginTransaction();
 
                 $stmt = db()->prepare(
-                    'INSERT INTO users (username, password_hash, full_name, email, phone) VALUES (?, ?, ?, ?, ?)'
+                    'INSERT INTO users (username, password_hash, full_name, email, phone, is_admin) VALUES (?, ?, ?, ?, ?, ?)'
                 );
                 $stmt->execute([
                     $username,
@@ -71,13 +60,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $fullName,
                     $email,
                     $phone !== '' ? $phone : null,
+                    $isAdmin ? 1 : 0,
                 ]);
                 $newUserId = (int) db()->lastInsertId();
-
-                $roleStmt = db()->prepare('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)');
-                foreach ($roleIds as $roleId) {
-                    $roleStmt->execute([$newUserId, $roleId]);
-                }
 
                 $groupStmt = db()->prepare('INSERT INTO user_agent_groups (user_id, group_id) VALUES (?, ?)');
                 foreach ($groupIds as $groupId) {
@@ -107,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = trim((string) ($_POST['email'] ?? ''));
         $phone = trim((string) ($_POST['phone'] ?? ''));
         $newPassword = (string) ($_POST['new_password'] ?? '');
-        $roleIds = valid_ids_from_post($_POST['roles'] ?? [], $allRoles);
+        $isAdmin = isset($_POST['is_admin']);
         $groupIds = valid_ids_from_post($_POST['groups'] ?? [], $allGroups);
         $categoryIds = valid_ids_from_post($_POST['categories'] ?? [], $allCategories);
 
@@ -127,15 +112,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($newPassword !== '' && strlen($newPassword) < 8) {
             $errors[] = 'New password must be at least 8 characters.';
         }
-        if (!$roleIds) {
-            $errors[] = 'Please select at least one role.';
-        }
 
-        $willBeActiveAdmin = $adminRoleId !== null
-            && in_array($adminRoleId, $roleIds, true)
-            && !user_is_locked($userId);
+        $willBeActiveAdmin = $isAdmin && !user_is_locked($userId);
         if (!$willBeActiveAdmin && user_is_active_admin($userId) && active_admin_count($userId) === 0) {
-            $errors[] = 'At least one active administrator is required — cannot remove the Administrator role from the last one.';
+            $errors[] = 'At least one active administrator is required — cannot remove Administrator from the last one.';
         }
 
         if (!$errors) {
@@ -146,18 +126,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($newPassword !== '') {
                     $stmt = db()->prepare(
-                        'UPDATE users SET username = ?, full_name = ?, email = ?, phone = ?, password_hash = ? WHERE id = ?'
+                        'UPDATE users SET username = ?, full_name = ?, email = ?, phone = ?, is_admin = ?, password_hash = ? WHERE id = ?'
                     );
-                    $stmt->execute([$username, $fullName, $email, $phone, password_hash($newPassword, PASSWORD_DEFAULT), $userId]);
+                    $stmt->execute([$username, $fullName, $email, $phone, $isAdmin ? 1 : 0, password_hash($newPassword, PASSWORD_DEFAULT), $userId]);
                 } else {
-                    $stmt = db()->prepare('UPDATE users SET username = ?, full_name = ?, email = ?, phone = ? WHERE id = ?');
-                    $stmt->execute([$username, $fullName, $email, $phone, $userId]);
-                }
-
-                db()->prepare('DELETE FROM user_roles WHERE user_id = ?')->execute([$userId]);
-                $roleStmt = db()->prepare('INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)');
-                foreach ($roleIds as $roleId) {
-                    $roleStmt->execute([$userId, $roleId]);
+                    $stmt = db()->prepare('UPDATE users SET username = ?, full_name = ?, email = ?, phone = ?, is_admin = ? WHERE id = ?');
+                    $stmt->execute([$username, $fullName, $email, $phone, $isAdmin ? 1 : 0, $userId]);
                 }
 
                 db()->prepare('DELETE FROM user_agent_groups WHERE user_id = ?')->execute([$userId]);
@@ -343,8 +317,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $allGroups = all_groups();
 $allCategories = all_categories();
-$users = all_users_with_roles_and_groups();
-$userRoleMap = user_role_id_map();
+$users = all_users_with_groups_and_categories();
 $userGroupMap = user_group_id_map();
 $userCategoryMap = user_category_id_map();
 $groupCategoryMap = group_category_id_map();
@@ -357,7 +330,7 @@ require __DIR__ . '/includes/header.php';
 
 <div class="mb-4">
     <h1 class="h3 mb-1">Admin Settings</h1>
-    <p class="text-body-secondary mb-0">Manage helpdesk staff accounts, roles, and groups.</p>
+    <p class="text-body-secondary mb-0">Manage helpdesk staff accounts, groups, and categories.</p>
 </div>
 
 <ul class="nav nav-tabs mb-4">

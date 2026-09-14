@@ -5,23 +5,9 @@ CREATE TABLE users (
     full_name     VARCHAR(100) NOT NULL,
     email         VARCHAR(150) NULL,
     phone         VARCHAR(30) NULL,
+    is_admin      TINYINT(1) NOT NULL DEFAULT 0,
     is_locked     TINYINT(1) NOT NULL DEFAULT 0,
     created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE roles (
-    id   TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(30) NOT NULL UNIQUE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-INSERT INTO roles (name) VALUES ('Administrator'), ('Helpdesk Agent');
-
-CREATE TABLE user_roles (
-    user_id INT UNSIGNED NOT NULL,
-    role_id TINYINT UNSIGNED NOT NULL,
-    PRIMARY KEY (user_id, role_id),
-    CONSTRAINT fk_user_roles_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_user_roles_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE agent_groups (

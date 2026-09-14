@@ -19,9 +19,18 @@ function require_login(): void
         exit;
     }
 
-    $stmt = db()->prepare('SELECT is_locked FROM users WHERE id = ?');
-    $stmt->execute([$user['id']]);
-    $row = $stmt->fetch();
+    try {
+        $stmt = db()->prepare('SELECT is_locked FROM users WHERE id = ?');
+        $stmt->execute([$user['id']]);
+        $row = $stmt->fetch();
+    } catch (PDOException $e) {
+        // Schema is behind what this code expects (e.g. a pending migration
+        // after a git pull). Fail closed rather than crash every page.
+        logout();
+        flash('error', 'The database is out of date. An administrator should visit migrate.php to update it.');
+        header('Location: login.php');
+        exit;
+    }
 
     if (!$row || (int) $row['is_locked'] === 1) {
         logout();
@@ -30,30 +39,27 @@ function require_login(): void
     }
 }
 
-function user_role_names(int $userId): array
-{
-    $stmt = db()->prepare(
-        'SELECT r.name FROM roles r
-         INNER JOIN user_roles ur ON ur.role_id = r.id
-         WHERE ur.user_id = ?'
-    );
-    $stmt->execute([$userId]);
-    return array_column($stmt->fetchAll(), 'name');
-}
-
-function current_user_roles(): array
-{
-    static $roles = null;
-    if ($roles === null) {
-        $user = current_user();
-        $roles = $user ? user_role_names((int) $user['id']) : [];
-    }
-    return $roles;
-}
-
 function is_admin(): bool
 {
-    return in_array('Administrator', current_user_roles(), true);
+    static $result = null;
+    if ($result === null) {
+        $user = current_user();
+        if (!$user) {
+            $result = false;
+        } else {
+            try {
+                $stmt = db()->prepare('SELECT is_admin FROM users WHERE id = ?');
+                $stmt->execute([$user['id']]);
+                $row = $stmt->fetch();
+                $result = $row && (int) $row['is_admin'] === 1;
+            } catch (PDOException $e) {
+                // Schema is behind what this code expects — treat as non-admin
+                // rather than crash the page (this runs on every page's nav).
+                $result = false;
+            }
+        }
+    }
+    return $result;
 }
 
 function require_admin(): void

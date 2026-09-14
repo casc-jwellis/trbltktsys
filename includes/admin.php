@@ -2,11 +2,6 @@
 // Helper functions for admin-settings.php. Not autoloaded by bootstrap.php —
 // only admin-settings.php needs these, so it requires this file directly.
 
-function all_roles(): array
-{
-    return db()->query('SELECT id, name FROM roles ORDER BY id')->fetchAll();
-}
-
 function all_groups(): array
 {
     return db()->query(
@@ -37,16 +32,13 @@ function all_categories_with_counts(): array
     )->fetchAll();
 }
 
-function all_users_with_roles_and_groups(): array
+function all_users_with_groups_and_categories(): array
 {
     return db()->query(
-        'SELECT u.id, u.username, u.full_name, u.email, u.phone, u.is_locked, u.created_at,
-                GROUP_CONCAT(DISTINCT r.name ORDER BY r.name SEPARATOR ", ") AS role_names,
+        'SELECT u.id, u.username, u.full_name, u.email, u.phone, u.is_admin, u.is_locked, u.created_at,
                 GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ", ") AS group_names,
                 GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ", ") AS category_names
          FROM users u
-         LEFT JOIN user_roles ur ON ur.user_id = u.id
-         LEFT JOIN roles r ON r.id = ur.role_id
          LEFT JOIN user_agent_groups ug ON ug.user_id = u.id
          LEFT JOIN agent_groups g ON g.id = ug.group_id
          LEFT JOIN user_categories uc ON uc.user_id = u.id
@@ -54,15 +46,6 @@ function all_users_with_roles_and_groups(): array
          GROUP BY u.id
          ORDER BY u.full_name'
     )->fetchAll();
-}
-
-function user_role_id_map(): array
-{
-    $map = [];
-    foreach (db()->query('SELECT user_id, role_id FROM user_roles') as $row) {
-        $map[(int) $row['user_id']][] = (int) $row['role_id'];
-    }
-    return $map;
 }
 
 function user_group_id_map(): array
@@ -94,13 +77,10 @@ function group_category_id_map(): array
 
 function active_admin_count(?int $excludeUserId = null): int
 {
-    $sql = "SELECT COUNT(*) FROM users u
-            INNER JOIN user_roles ur ON ur.user_id = u.id
-            INNER JOIN roles r ON r.id = ur.role_id
-            WHERE r.name = 'Administrator' AND u.is_locked = 0";
+    $sql = 'SELECT COUNT(*) FROM users WHERE is_admin = 1 AND is_locked = 0';
     $params = [];
     if ($excludeUserId !== null) {
-        $sql .= ' AND u.id != ?';
+        $sql .= ' AND id != ?';
         $params[] = $excludeUserId;
     }
     $stmt = db()->prepare($sql);
@@ -110,8 +90,10 @@ function active_admin_count(?int $excludeUserId = null): int
 
 function user_is_active_admin(int $userId): bool
 {
-    return in_array('Administrator', user_role_names($userId), true)
-        && !user_is_locked($userId);
+    $stmt = db()->prepare('SELECT is_admin, is_locked FROM users WHERE id = ?');
+    $stmt->execute([$userId]);
+    $row = $stmt->fetch();
+    return $row && (int) $row['is_admin'] === 1 && (int) $row['is_locked'] === 0;
 }
 
 function user_is_locked(int $userId): bool
@@ -122,7 +104,7 @@ function user_is_locked(int $userId): bool
     return $row && (int) $row['is_locked'] === 1;
 }
 
-/** Filters submitted role/group IDs down to ones that actually exist. */
+/** Filters submitted group/category IDs down to ones that actually exist. */
 function valid_ids_from_post(array $submitted, array $validRows): array
 {
     $validIds = array_column($validRows, 'id');
@@ -131,11 +113,10 @@ function valid_ids_from_post(array $submitted, array $validRows): array
 }
 
 /**
- * Deletes every ticket, requester, staff account, and group. Roles and
- * categories are left in place (they're fixed reference/config data, not
- * user content) so the app can still assign them — and ticket submission
- * still has categories to offer — once someone goes through initial setup
- * again.
+ * Deletes every ticket, requester, staff account, and group. Categories are
+ * left in place (they're fixed config data, not user content) so ticket
+ * submission still has something to offer once someone goes through initial
+ * setup again.
  */
 function purge_all_data(): void
 {

@@ -8,9 +8,8 @@ A simple PHP trouble ticket system.
 - **Helpdesk login** (`login.php`) — session-based auth for staff.
 - **Ticket queue & management** (`dashboard.php`, `ticket.php`) — staff-only, requires login.
 - **Admin settings** (`admin-settings.php`) — Administrator-only. Create, edit, lock, or remove
-  helpdesk accounts, assign roles (Administrator / Helpdesk Agent), groups, and ticket categories
-  to both users and groups, manage the category list itself, and (from the Database tab) purge
-  all data.
+  helpdesk accounts (with an Administrator flag), assign groups and ticket categories to both
+  users and groups, manage the category list itself, and (from the Database tab) purge all data.
 - **Database migrations** (`migrate.php`) — applies any pending schema changes after a `git pull`,
   from the browser.
 
@@ -23,10 +22,10 @@ A simple PHP trouble ticket system.
 Any page will redirect you into `install.php` until setup is finished. The installer walks through three steps:
 
 1. **Database credentials** — enter your host/port/database/username/password; the connection is tested before anything is saved to `config/config.php`.
-2. **Tables** — creates the `tickets`, `users`, `roles`, and `agent_groups` tables (and their join tables) from `schema.sql` with one click.
-3. **First admin account** — create the helpdesk staff login you'll use going forward, with a required email and optional phone number. This account is granted both the Administrator and Helpdesk Agent roles, so it can manage tickets and access Admin Settings immediately.
+2. **Tables** — creates the `tickets`, `users`, and `agent_groups` tables (and their join tables) from `schema.sql` with one click.
+3. **First admin account** — create the helpdesk staff login you'll use going forward, with a required email and optional phone number. This account is flagged as an Administrator, so it can manage tickets and access Admin Settings immediately.
 
-Once an admin account exists, `install.php` locks itself out (it redirects to `login.php`) so it can't be used to re-run setup or create more accounts later. Additional staff accounts — and their roles (Administrator / Helpdesk Agent) and groups — are managed from the **Admin Settings** panel (Administrator-only). There's no CLI for creating accounts; the web installer and Admin Settings panel are the only ways in.
+Once an admin account exists, `install.php` locks itself out (it redirects to `login.php`) so it can't be used to re-run setup or create more accounts later. Additional staff accounts — including the Administrator flag and groups — are managed from the **Admin Settings** panel (Administrator-only). There's no CLI for creating accounts; the web installer and Admin Settings panel are the only ways in.
 
 Pulled new code onto an existing install? Open **`migrate.php`** in a browser — it detects any schema
 changes that haven't been applied yet (new columns/tables from `migrations/*.sql`) and applies them

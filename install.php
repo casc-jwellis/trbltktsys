@@ -128,10 +128,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['stage'] ?? '') === $stage)
         }
 
         if (!$errors) {
-            $pdo = db();
-            $pdo->beginTransaction();
-
-            $stmt = $pdo->prepare('INSERT INTO users (username, password_hash, full_name, email, phone) VALUES (?, ?, ?, ?, ?)');
+            // The first account is an administrator so it can access Admin
+            // Settings right away; every account can already manage tickets.
+            $stmt = db()->prepare(
+                'INSERT INTO users (username, password_hash, full_name, email, phone, is_admin) VALUES (?, ?, ?, ?, ?, 1)'
+            );
             $stmt->execute([
                 $old['username'],
                 password_hash($password, PASSWORD_DEFAULT),
@@ -139,14 +140,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['stage'] ?? '') === $stage)
                 $old['email'],
                 $old['phone'] !== '' ? $old['phone'] : null,
             ]);
-            $userId = (int) $pdo->lastInsertId();
-
-            // The first account gets both roles so it can manage tickets and access Admin Settings right away.
-            $roleStmt = $pdo->prepare('INSERT INTO user_roles (user_id, role_id) SELECT ?, id FROM roles WHERE name = ?');
-            $roleStmt->execute([$userId, 'Administrator']);
-            $roleStmt->execute([$userId, 'Helpdesk Agent']);
-
-            $pdo->commit();
 
             flash('success', 'Helpdesk account created. Log in below.');
             header('Location: login.php');

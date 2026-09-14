@@ -74,6 +74,11 @@ function available_migrations(): array
             'label'   => 'Manageable ticket categories, assignable to users and groups',
             'applied' => fn (): bool => table_exists('categories'),
         ],
+        [
+            'file'    => '006_admin_flag.sql',
+            'label'   => 'Replace roles with a single is_admin flag',
+            'applied' => fn (): bool => column_exists('users', 'is_admin'),
+        ],
     ];
 }
 
