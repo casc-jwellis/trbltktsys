@@ -31,7 +31,15 @@ $user = current_user();
                     <?php if (is_admin()): ?>
                         <li class="nav-item"><a class="nav-link" href="admin-settings.php">Admin Settings</a></li>
                     <?php endif; ?>
-                    <li class="nav-item"><span class="nav-link text-body-secondary">Hi, <?= e($user['full_name']) ?></span></li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-2" href="account.php" title="My Account">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                                <circle cx="8" cy="5" r="3"/>
+                                <path d="M2.5 14c0-3 2.5-5 5.5-5s5.5 2 5.5 5a.5.5 0 0 1-.5.5H3a.5.5 0 0 1-.5-.5Z"/>
+                            </svg>
+                            <?= e($user['full_name']) ?>
+                        </a>
+                    </li>
                     <li class="nav-item"><a class="btn btn-outline-secondary btn-sm" href="logout.php">Log out</a></li>
                 <?php else: ?>
                     <li class="nav-item"><a class="nav-link" href="submit-ticket.php">Submit a Ticket</a></li>
