@@ -13,6 +13,7 @@ $myEmail = array_column($users, 'email', 'id')[current_user_id()] ?? '';
 <div class="card mb-4">
     <div class="card-header">SMTP Settings</div>
     <div class="card-body p-4">
+        <p class="text-body-secondary">Currently only SMTP sending is supported. This has been tested with Gmail using an app password.</p>
         <form method="post">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="update_smtp_settings">
