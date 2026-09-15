@@ -101,15 +101,23 @@
                             <label class="form-label d-block">Categories</label>
                             <?php if (!$allCategories): ?>
                                 <p class="text-body-secondary small mb-0">No categories yet — create one on the Categories tab.</p>
-                            <?php endif; ?>
-                            <?php foreach ($allCategories as $category): ?>
-                                <div class="form-check form-check-inline">
-                                    <input class="form-check-input" type="checkbox" name="categories[]"
-                                           value="<?= (int) $category['id'] ?>" id="edit_group_category_<?= $gid ?>_<?= (int) $category['id'] ?>"
-                                           <?= in_array((int) $category['id'], $groupCategoryIds, true) ? 'checked' : '' ?>>
-                                    <label class="form-check-label" for="edit_group_category_<?= $gid ?>_<?= (int) $category['id'] ?>"><?= e($category['name']) ?></label>
+                            <?php else: ?>
+                                <div class="assignment-picker">
+                                    <div class="assignment-pills mb-2"></div>
+                                    <input type="text" class="form-control form-control-sm assignment-search" placeholder="Search categories...">
+                                    <div class="list-group assignment-dropdown"></div>
+                                    <div class="assignment-options">
+                                        <?php foreach ($allCategories as $category): ?>
+                                            <div class="form-check assignment-option">
+                                                <input class="form-check-input" type="checkbox" name="categories[]"
+                                                       value="<?= (int) $category['id'] ?>" id="edit_group_category_<?= $gid ?>_<?= (int) $category['id'] ?>"
+                                                       <?= in_array((int) $category['id'], $groupCategoryIds, true) ? 'checked' : '' ?>>
+                                                <label class="form-check-label" for="edit_group_category_<?= $gid ?>_<?= (int) $category['id'] ?>"><?= e($category['name']) ?></label>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
                                 </div>
-                            <?php endforeach; ?>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="modal-footer">
