@@ -144,30 +144,41 @@ function send_ticket_confirmation_email(array $ticket): void
 }
 
 /**
- * Sent to every active agent in a ticket's assigned groups when the
- * submitter posts a new reply via ticket-status.php. Best-effort: a failure
- * for one recipient is logged and doesn't stop the others, and the caller
- * never sees an exception here -- this is a background notification, not
- * something the (anonymous, unauthenticated) submitter should see fail.
+ * Emails every active agent in a ticket's assigned groups. Best-effort: a
+ * failure for one recipient is logged and doesn't stop the others, and the
+ * caller never sees an exception here -- these are background notifications,
+ * not something the (anonymous, unauthenticated) submitter should see fail.
  */
-function send_ticket_reply_notification(int $ticketId, string $ticketSubject): void
+function notify_ticket_agents(int $ticketId, string $subject, string $body): void
 {
-    $recipients = ticket_assigned_agent_emails($ticketId);
-    if (!$recipients) {
-        return;
-    }
-
-    $link = ticket_staff_link($ticketId);
-    $subject = 'New reply on ticket #' . $ticketId . ': ' . $ticketSubject;
-    $body = "The submitter added a new reply on ticket #{$ticketId}:\n{$ticketSubject}\n\n{$link}\n";
-
-    foreach ($recipients as $recipient) {
+    foreach (ticket_assigned_agent_emails($ticketId) as $recipient) {
         try {
             send_ticket_email($recipient['email'], $subject, $body);
         } catch (Throwable $e) {
-            error_log("Failed to notify {$recipient['email']} about ticket #{$ticketId} reply: " . $e->getMessage());
+            error_log("Failed to notify {$recipient['email']} about ticket #{$ticketId}: " . $e->getMessage());
         }
     }
+}
+
+/** Sent to a ticket's assigned agents right after it's submitted. */
+function send_new_ticket_notification(int $ticketId, string $ticketSubject): void
+{
+    $link = ticket_staff_link($ticketId);
+    $subject = 'New ticket #' . $ticketId . ': ' . $ticketSubject;
+    $body = "A new ticket was submitted and assigned to your group:\n{$ticketSubject}\n\n{$link}\n";
+    notify_ticket_agents($ticketId, $subject, $body);
+}
+
+/**
+ * Sent to a ticket's assigned agents when the submitter posts a new reply
+ * via ticket-status.php.
+ */
+function send_ticket_reply_notification(int $ticketId, string $ticketSubject): void
+{
+    $link = ticket_staff_link($ticketId);
+    $subject = 'New reply on ticket #' . $ticketId . ': ' . $ticketSubject;
+    $body = "The submitter added a new reply on ticket #{$ticketId}:\n{$ticketSubject}\n\n{$link}\n";
+    notify_ticket_agents($ticketId, $subject, $body);
 }
 
 /**

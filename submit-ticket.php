@@ -109,6 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        send_new_ticket_notification($newTicketId, $old['subject']);
+
         header('Location: ticket-submitted.php?id=' . $newTicketId);
         exit;
     }
