@@ -6,69 +6,65 @@
     <div class="alert alert-warning">The database is out of date — canned responses are unavailable until an administrator visits <a href="migrate.php">migrate.php</a>.</div>
 <?php else: ?>
 
-<div class="row g-4">
-    <div class="col-lg-5">
-        <div class="card">
-            <div class="card-header">New Canned Response</div>
-            <div class="card-body p-4">
-                <form method="post">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="action" value="create_canned_response">
-                    <div class="mb-3">
-                        <label class="form-label" for="response_title">Title</label>
-                        <input class="form-control" id="response_title" name="title" required maxlength="100" placeholder="e.g. Password Reset Instructions">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="response_body">Response Text</label>
-                        <textarea class="form-control" id="response_body" name="body" rows="6" required></textarea>
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Create Response</button>
-                    </div>
-                </form>
+<div class="card mb-4">
+    <div class="card-header">New Canned Response</div>
+    <div class="card-body p-4">
+        <form method="post">
+            <?= csrf_field() ?>
+            <input type="hidden" name="action" value="create_canned_response">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label" for="response_title">Title</label>
+                    <input class="form-control" id="response_title" name="title" required maxlength="100" placeholder="e.g. Password Reset Instructions">
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label" for="response_body">Response Text</label>
+                    <textarea class="form-control" id="response_body" name="body" rows="3" required></textarea>
+                </div>
             </div>
-        </div>
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">Create Response</button>
+            </div>
+        </form>
     </div>
+</div>
 
-    <div class="col-lg-7">
-        <div class="card">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th>Title</th>
-                            <th>Preview</th>
-                            <th class="text-end">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (!$cannedResponses): ?>
-                            <tr><td colspan="3" class="text-center text-body-secondary py-4">No canned responses yet.</td></tr>
-                        <?php endif; ?>
-                        <?php foreach ($cannedResponses as $response): ?>
-                            <tr>
-                                <td><?= e($response['title']) ?></td>
-                                <td class="text-body-secondary"><?= e(mb_strimwidth($response['body'], 0, 60, '…')) ?></td>
-                                <td class="text-end">
-                                    <div class="d-inline-flex gap-1">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                data-bs-toggle="modal" data-bs-target="#editResponseModal<?= (int) $response['id'] ?>">
-                                            Edit
-                                        </button>
-                                        <form method="post" class="d-inline" onsubmit="return confirm('Remove this canned response? This cannot be undone.');">
-                                            <?= csrf_field() ?>
-                                            <input type="hidden" name="action" value="delete_canned_response">
-                                            <input type="hidden" name="response_id" value="<?= (int) $response['id'] ?>">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>Preview</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!$cannedResponses): ?>
+                    <tr><td colspan="3" class="text-center text-body-secondary py-4">No canned responses yet.</td></tr>
+                <?php endif; ?>
+                <?php foreach ($cannedResponses as $response): ?>
+                    <tr>
+                        <td><?= e($response['title']) ?></td>
+                        <td class="text-body-secondary"><?= e(mb_strimwidth($response['body'], 0, 60, '…')) ?></td>
+                        <td class="text-end">
+                            <div class="d-inline-flex gap-1">
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        data-bs-toggle="modal" data-bs-target="#editResponseModal<?= (int) $response['id'] ?>">
+                                    Edit
+                                </button>
+                                <form method="post" class="d-inline" onsubmit="return confirm('Remove this canned response? This cannot be undone.');">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="action" value="delete_canned_response">
+                                    <input type="hidden" name="response_id" value="<?= (int) $response['id'] ?>">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
     </div>
 </div>
 
