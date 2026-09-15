@@ -9,7 +9,7 @@ $myId = current_user_id();
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <p class="text-body-secondary mb-0"><?= count($users) ?> user<?= count($users) === 1 ? '' : 's' ?></p>
-    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createUserModal">
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
         + New User
     </button>
 </div>
@@ -51,7 +51,7 @@ $myId = current_user_id();
                         <td class="text-end">
                             <div class="d-inline-flex gap-1">
                                 <button type="button" class="btn btn-sm btn-outline-secondary"
-                                        data-toggle="modal" data-target="#editUserModal<?= (int) $user['id'] ?>">
+                                        data-bs-toggle="modal" data-bs-target="#editUserModal<?= (int) $user['id'] ?>">
                                     Edit
                                 </button>
 
@@ -93,7 +93,7 @@ $myId = current_user_id();
                 <input type="hidden" name="action" value="create_user">
                 <div class="modal-header">
                     <h5 class="modal-title">New Helpdesk User</h5>
-                    <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
@@ -152,7 +152,7 @@ $myId = current_user_id();
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">Create User</button>
                 </div>
             </form>
@@ -174,7 +174,7 @@ $myId = current_user_id();
                     <input type="hidden" name="user_id" value="<?= $uid ?>">
                     <div class="modal-header">
                         <h5 class="modal-title">Edit <?= e($user['full_name']) ?></h5>
-                        <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
                         <div class="mb-3">
@@ -230,7 +230,7 @@ $myId = current_user_id();
                         </div>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary">Save Changes</button>
                     </div>
                 </form>
