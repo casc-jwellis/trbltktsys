@@ -123,7 +123,7 @@ require __DIR__ . '/includes/header.php';
 <div class="form-shell">
     <div class="mb-4">
         <h1 class="h3">Submit a Ticket</h1>
-        <p class="text-body-secondary">Let us know what's going on. No account required.  Please use your CASC Email address when submitting a ticket.</p>
+        <p class="text-body-secondary">Let us know what's going on. No account required.</p>
     </div>
 
     <?php if ($errors): ?>
