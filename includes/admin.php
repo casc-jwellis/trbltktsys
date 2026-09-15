@@ -35,7 +35,7 @@ function all_categories_with_counts(): array
 function all_users_with_groups_and_categories(): array
 {
     return db()->query(
-        'SELECT u.id, u.username, u.full_name, u.email, u.phone, u.is_admin, u.is_locked, u.created_at,
+        'SELECT u.id, u.username, u.full_name, u.email, u.phone, u.is_admin, u.disabled, u.created_at,
                 GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ", ") AS group_names,
                 GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ", ") AS category_names
          FROM users u
@@ -77,7 +77,7 @@ function group_category_id_map(): array
 
 function active_admin_count(?int $excludeUserId = null): int
 {
-    $sql = 'SELECT COUNT(*) FROM users WHERE is_admin = 1 AND is_locked = 0';
+    $sql = 'SELECT COUNT(*) FROM users WHERE is_admin = 1 AND disabled = 0';
     $params = [];
     if ($excludeUserId !== null) {
         $sql .= ' AND id != ?';
@@ -90,18 +90,18 @@ function active_admin_count(?int $excludeUserId = null): int
 
 function user_is_active_admin(int $userId): bool
 {
-    $stmt = db()->prepare('SELECT is_admin, is_locked FROM users WHERE id = ?');
+    $stmt = db()->prepare('SELECT is_admin, disabled FROM users WHERE id = ?');
     $stmt->execute([$userId]);
     $row = $stmt->fetch();
-    return $row && (int) $row['is_admin'] === 1 && (int) $row['is_locked'] === 0;
+    return $row && (int) $row['is_admin'] === 1 && (int) $row['disabled'] === 0;
 }
 
-function user_is_locked(int $userId): bool
+function user_is_disabled(int $userId): bool
 {
-    $stmt = db()->prepare('SELECT is_locked FROM users WHERE id = ?');
+    $stmt = db()->prepare('SELECT disabled FROM users WHERE id = ?');
     $stmt->execute([$userId]);
     $row = $stmt->fetch();
-    return $row && (int) $row['is_locked'] === 1;
+    return $row && (int) $row['disabled'] === 1;
 }
 
 /**

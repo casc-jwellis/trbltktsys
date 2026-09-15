@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'New password must be at least 8 characters.';
         }
 
-        $willBeActiveAdmin = $isAdmin && !user_is_locked($userId);
+        $willBeActiveAdmin = $isAdmin && !user_is_disabled($userId);
         if (!$willBeActiveAdmin && user_is_active_admin($userId) && active_admin_count($userId) === 0) {
             $errors[] = 'At least one active administrator is required — cannot remove Administrator from the last one.';
         }
@@ -163,18 +163,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             flash('error', implode(' ', $errors));
         }
-    } elseif ($action === 'toggle_lock') {
+    } elseif ($action === 'toggle_disabled') {
         $userId = (int) ($_POST['user_id'] ?? 0);
-        $lock = (string) ($_POST['lock'] ?? '') === '1';
+        $disable = (string) ($_POST['disabled'] ?? '') === '1';
 
         if ($userId === current_user_id()) {
-            flash('error', 'You cannot lock or unlock your own account.');
-        } elseif ($lock && user_is_active_admin($userId) && active_admin_count($userId) === 0) {
-            flash('error', 'At least one active administrator is required — cannot lock the last one.');
+            flash('error', 'You cannot disable or enable your own account.');
+        } elseif ($disable && user_is_active_admin($userId) && active_admin_count($userId) === 0) {
+            flash('error', 'At least one active administrator is required — cannot disable the last one.');
         } else {
-            $stmt = db()->prepare('UPDATE users SET is_locked = ? WHERE id = ?');
-            $stmt->execute([$lock ? 1 : 0, $userId]);
-            flash('success', $lock ? 'User locked.' : 'User unlocked.');
+            $stmt = db()->prepare('UPDATE users SET disabled = ? WHERE id = ?');
+            $stmt->execute([$disable ? 1 : 0, $userId]);
+            flash('success', $disable ? 'User disabled.' : 'User enabled.');
         }
     } elseif ($action === 'delete_user') {
         $userId = (int) ($_POST['user_id'] ?? 0);

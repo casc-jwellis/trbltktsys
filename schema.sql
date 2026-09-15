@@ -6,7 +6,7 @@ CREATE TABLE users (
     email         VARCHAR(150) NULL,
     phone         VARCHAR(30) NULL,
     is_admin      TINYINT(1) NOT NULL DEFAULT 0,
-    is_locked     TINYINT(1) NOT NULL DEFAULT 0,
+    disabled      TINYINT(1) NOT NULL DEFAULT 0,
     created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

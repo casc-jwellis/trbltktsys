@@ -46,8 +46,8 @@ $myId = current_user_id();
                         <td><?= e($user['group_names'] ?: '—') ?></td>
                         <td><?= e($user['category_names'] ?: '—') ?></td>
                         <td>
-                            <?php if ((int) $user['is_locked'] === 1): ?>
-                                <span class="badge text-bg-secondary">Locked</span>
+                            <?php if ((int) $user['disabled'] === 1): ?>
+                                <span class="badge text-bg-secondary">Disabled</span>
                             <?php else: ?>
                                 <span class="badge text-bg-success">Active</span>
                             <?php endif; ?>
@@ -61,12 +61,12 @@ $myId = current_user_id();
 
                                 <form method="post" class="d-inline">
                                     <?= csrf_field() ?>
-                                    <input type="hidden" name="action" value="toggle_lock">
+                                    <input type="hidden" name="action" value="toggle_disabled">
                                     <input type="hidden" name="user_id" value="<?= (int) $user['id'] ?>">
-                                    <input type="hidden" name="lock" value="<?= (int) $user['is_locked'] === 1 ? '0' : '1' ?>">
+                                    <input type="hidden" name="disabled" value="<?= (int) $user['disabled'] === 1 ? '0' : '1' ?>">
                                     <button type="submit" class="btn btn-sm btn-outline-warning"
                                             <?= (int) $user['id'] === $myId ? 'disabled' : '' ?>>
-                                        <?= (int) $user['is_locked'] === 1 ? 'Unlock' : 'Lock' ?>
+                                        <?= (int) $user['disabled'] === 1 ? 'Enable' : 'Disable' ?>
                                     </button>
                                 </form>
 

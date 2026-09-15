@@ -73,11 +73,11 @@ function assign_ticket_by_category(int $ticketId, string $category): void
     $stmt->execute([$ticketId, $categoryId]);
 }
 
-/** Non-locked agents plus, if given, any already-assigned users (so a now-locked account currently assigned to a ticket still shows up). */
+/** Non-disabled agents plus, if given, any already-assigned users (so a now-disabled account currently assigned to a ticket still shows up). */
 function assignable_users(array $includeUserIds = []): array
 {
     $placeholders = implode(',', array_fill(0, count($includeUserIds), '?'));
-    $sql = 'SELECT id, full_name FROM users WHERE is_locked = 0';
+    $sql = 'SELECT id, full_name FROM users WHERE disabled = 0';
     if ($placeholders !== '') {
         $sql .= ' OR id IN (' . $placeholders . ')';
     }

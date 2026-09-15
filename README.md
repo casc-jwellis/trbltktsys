@@ -13,7 +13,7 @@ A simple PHP trouble ticket system.
   ticket has a chronological conversation thread — responses meant for the submitter, plus
   internal notes (added via a separate modal so they can't be mixed up with a submitter-facing
   response) that only staff can see. A response can also be inserted from a saved canned response.
-- **Admin settings** (`admin-settings.php`) — Administrator-only. Create, edit, lock, or remove
+- **Admin settings** (`admin-settings.php`) — Administrator-only. Create, edit, disable, or remove
   helpdesk accounts (with an Administrator flag), assign groups and ticket categories to both
   users and groups, manage the category list itself, maintain a library of canned responses
   (Responses tab), and (from the Database tab) purge all data.

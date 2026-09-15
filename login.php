@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $error = match ($result) {
-            'locked'       => 'This account has been locked. Contact an administrator.',
+            'disabled'     => 'This account has been disabled. Contact an administrator.',
             'schema-error' => 'The database is out of date. An administrator should visit migrate.php to update it.',
             default        => 'Invalid username or password.',
         };

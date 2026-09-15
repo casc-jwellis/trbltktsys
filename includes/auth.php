@@ -20,7 +20,7 @@ function require_login(): void
     }
 
     try {
-        $stmt = db()->prepare('SELECT is_locked FROM users WHERE id = ?');
+        $stmt = db()->prepare('SELECT disabled FROM users WHERE id = ?');
         $stmt->execute([$user['id']]);
         $row = $stmt->fetch();
     } catch (PDOException $e) {
@@ -32,7 +32,7 @@ function require_login(): void
         exit;
     }
 
-    if (!$row || (int) $row['is_locked'] === 1) {
+    if (!$row || (int) $row['disabled'] === 1) {
         logout();
         header('Location: login.php');
         exit;
@@ -74,7 +74,7 @@ function require_admin(): void
 
 function attempt_login(string $username, string $password): string
 {
-    $stmt = db()->prepare('SELECT id, username, full_name, password_hash, is_locked FROM users WHERE username = ?');
+    $stmt = db()->prepare('SELECT id, username, full_name, password_hash, disabled FROM users WHERE username = ?');
     $stmt->execute([$username]);
     $user = $stmt->fetch();
 
@@ -82,8 +82,8 @@ function attempt_login(string $username, string $password): string
         return 'invalid';
     }
 
-    if ((int) $user['is_locked'] === 1) {
-        return 'locked';
+    if ((int) $user['disabled'] === 1) {
+        return 'disabled';
     }
 
     session_regenerate_id(true);

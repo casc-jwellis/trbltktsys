@@ -52,7 +52,10 @@ function available_migrations(): array
         [
             'file'    => '001_admin_roles_groups.sql',
             'label'   => 'Account locking, roles, and groups',
-            'applied' => fn (): bool => column_exists('users', 'is_locked'),
+            // Checked via agent_groups rather than the is_locked column this
+            // migration added, since migration 010 later renamed that column
+            // to disabled -- agent_groups is untouched and still a reliable sentinel.
+            'applied' => fn (): bool => table_exists('agent_groups'),
         ],
         [
             'file'    => '002_user_contact_info.sql',
@@ -93,6 +96,11 @@ function available_migrations(): array
             'file'    => '009_canned_responses.sql',
             'label'   => 'Canned responses',
             'applied' => fn (): bool => table_exists('canned_responses'),
+        ],
+        [
+            'file'    => '010_disabled_flag.sql',
+            'label'   => 'Rename is_locked to disabled',
+            'applied' => fn (): bool => column_exists('users', 'disabled'),
         ],
     ];
 }
