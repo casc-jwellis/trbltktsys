@@ -20,14 +20,12 @@ if (in_array($categoryFilter, category_names(), true)) {
     $params[] = $categoryFilter;
 }
 
-// Agents only see tickets assigned to them (directly or via one of their
-// groups); administrators see everything.
+// Agents only see tickets assigned to one of their groups; administrators
+// see everything.
 if (!$isAdmin) {
     if ($assignmentsSupported) {
-        $where[] = '(t.id IN (SELECT ticket_id FROM ticket_assigned_users WHERE user_id = ?)
-                     OR t.id IN (SELECT ticket_id FROM ticket_assigned_groups WHERE group_id IN (
-                         SELECT group_id FROM user_agent_groups WHERE user_id = ?)))';
-        $params[] = current_user_id();
+        $where[] = 't.id IN (SELECT ticket_id FROM ticket_assigned_groups WHERE group_id IN (
+                        SELECT group_id FROM user_agent_groups WHERE user_id = ?))';
         $params[] = current_user_id();
     } else {
         // Can't tell what's assigned to this agent yet — show nothing rather than everything.
@@ -37,16 +35,13 @@ if (!$isAdmin) {
 
 if ($assignmentsSupported) {
     $sql = 'SELECT t.*,
-                GROUP_CONCAT(DISTINCT u.full_name ORDER BY u.full_name SEPARATOR ", ") AS assigned_user_names,
                 GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ", ") AS assigned_group_names
             FROM tickets t
-            LEFT JOIN ticket_assigned_users tu ON tu.ticket_id = t.id
-            LEFT JOIN users u ON u.id = tu.user_id
             LEFT JOIN ticket_assigned_groups tg ON tg.ticket_id = t.id
             LEFT JOIN agent_groups g ON g.id = tg.group_id';
 } else {
-    // Migration 007 hasn't been run yet — the assignment tables don't exist.
-    $sql = 'SELECT t.*, NULL AS assigned_user_names, NULL AS assigned_group_names FROM tickets t';
+    // Migration 007 hasn't been run yet — the assignment table doesn't exist.
+    $sql = 'SELECT t.*, NULL AS assigned_group_names FROM tickets t';
 }
 if ($where) {
     $sql .= ' WHERE ' . implode(' AND ', $where);
@@ -119,7 +114,7 @@ require __DIR__ . '/includes/header.php';
                         <td><?= e($ticket['category']) ?></td>
                         <td><span class="badge <?= priority_badge_class($ticket['priority']) ?>"><?= e($ticket['priority']) ?></span></td>
                         <td><span class="badge <?= status_badge_class($ticket['status']) ?>"><?= e($ticket['status']) ?></span></td>
-                        <td><?= e(implode(', ', array_filter([$ticket['assigned_user_names'], $ticket['assigned_group_names']])) ?: '—') ?></td>
+                        <td><?= e($ticket['assigned_group_names'] ?: '—') ?></td>
                         <td><?= e(date('M j, Y g:i A', strtotime($ticket['created_at']))) ?></td>
                     </tr>
                 <?php endforeach; ?>

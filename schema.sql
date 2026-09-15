@@ -68,16 +68,7 @@ CREATE INDEX idx_tickets_category ON tickets(category);
 
 -- Who a ticket is currently assigned to. Seeded from group_categories for
 -- the ticket's category when it's submitted, and freely editable afterward
--- by helpdesk agents (a ticket can be assigned to any number of users
--- and/or groups at once).
-CREATE TABLE ticket_assigned_users (
-    ticket_id INT UNSIGNED NOT NULL,
-    user_id   INT UNSIGNED NOT NULL,
-    PRIMARY KEY (ticket_id, user_id),
-    CONSTRAINT fk_ticket_assigned_users_ticket FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
-    CONSTRAINT fk_ticket_assigned_users_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
+-- by helpdesk agents (a ticket can be assigned to any number of groups).
 CREATE TABLE ticket_assigned_groups (
     ticket_id INT UNSIGNED NOT NULL,
     group_id  INT UNSIGNED NOT NULL,

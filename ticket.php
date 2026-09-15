@@ -51,9 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit;
             }
         } elseif ($action === 'reassign_ticket') {
-            $userIds = valid_ids_from_post($_POST['assigned_users'] ?? [], assignable_users(ticket_assigned_user_ids($id)));
             $groupIds = valid_ids_from_post($_POST['assigned_groups'] ?? [], assignable_groups());
-            save_ticket_assignments($id, $userIds, $groupIds);
+            save_ticket_assignments($id, $groupIds);
             flash('success', 'Ticket #' . $id . ' reassigned.');
             header('Location: ticket.php?id=' . $id);
             exit;
@@ -83,32 +82,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$assignedUserIds = ticket_assigned_user_ids($id);
 $assignedGroupIds = ticket_assigned_group_ids($id);
-$agents = assignable_users($assignedUserIds);
 $groups = assignable_groups();
 $comments = ticket_comments($id);
 $cannedResponses = all_canned_responses();
 
-$assignedUserNames = array_values(array_intersect_key(
-    array_column($agents, 'full_name', 'id'),
-    array_flip($assignedUserIds)
-));
 $assignedGroupNames = array_values(array_intersect_key(
     array_column($groups, 'name', 'id'),
     array_flip($assignedGroupIds)
 ));
 $assigneeTooltipHtml = '<div class="text-start"><div class="fw-semibold border-bottom pb-1 mb-1">Assigned To</div>';
-if (!$assignedUserNames && !$assignedGroupNames) {
-    $assigneeTooltipHtml .= '<div>Unassigned</div>';
-} else {
-    if ($assignedUserNames) {
-        $assigneeTooltipHtml .= '<div>Users: ' . e(implode(', ', $assignedUserNames)) . '</div>';
-    }
-    if ($assignedGroupNames) {
-        $assigneeTooltipHtml .= '<div>Groups: ' . e(implode(', ', $assignedGroupNames)) . '</div>';
-    }
-}
+$assigneeTooltipHtml .= $assignedGroupNames
+    ? '<div>' . e(implode(', ', $assignedGroupNames)) . '</div>'
+    : '<div>Unassigned</div>';
 $assigneeTooltipHtml .= '</div>';
 
 $pageTitle = 'Ticket #' . $id;
@@ -194,7 +180,7 @@ require __DIR__ . '/includes/header.php';
                         <line x1="8" y1="7.25" x2="8" y2="11.25"></line>
                         <circle cx="8" cy="5" r="0.75" fill="currentColor" stroke="none"></circle>
                     </svg>
-                    <span class="visually-hidden">Assigned agents</span>
+                    <span class="visually-hidden">Assigned groups</span>
                 </span>
             <?php endif; ?>
         </div>
@@ -271,26 +257,6 @@ require __DIR__ . '/includes/header.php';
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-4">
-                        <label class="form-label">Assigned Users</label>
-                        <?php if (!$agents): ?>
-                            <p class="text-body-secondary small mb-0">No agents available.</p>
-                        <?php else: ?>
-                            <div class="assignment-picker">
-                                <div class="assignment-pills mb-2"></div>
-                                <input type="text" class="form-control form-control-sm assignment-search" placeholder="Search agents...">
-                                <div class="list-group assignment-dropdown"></div>
-                                <div class="assignment-options">
-                                    <?php foreach ($agents as $agent): ?>
-                                        <div class="form-check assignment-option">
-                                            <input class="form-check-input" type="checkbox" name="assigned_users[]" value="<?= (int) $agent['id'] ?>" id="agent_<?= (int) $agent['id'] ?>" <?= in_array((int) $agent['id'], $assignedUserIds, true) ? 'checked' : '' ?>>
-                                            <label class="form-check-label" for="agent_<?= (int) $agent['id'] ?>"><?= e($agent['full_name']) ?></label>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
-                        <?php endif; ?>
-                    </div>
                     <div class="mb-0">
                         <label class="form-label">Assigned Groups</label>
                         <?php if (!$groups): ?>

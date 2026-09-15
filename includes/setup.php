@@ -85,7 +85,9 @@ function available_migrations(): array
         [
             'file'    => '007_ticket_assignments.sql',
             'label'   => 'Multi user/group ticket assignment',
-            'applied' => fn (): bool => table_exists('ticket_assigned_users'),
+            // Checked via ticket_assigned_groups rather than
+            // ticket_assigned_users, which migration 012 later dropped.
+            'applied' => fn (): bool => table_exists('ticket_assigned_groups'),
         ],
         [
             'file'    => '008_ticket_comments.sql',
@@ -106,6 +108,11 @@ function available_migrations(): array
             'file'    => '011_remove_user_categories.sql',
             'label'   => 'Remove per-user category permissions (groups only)',
             'applied' => fn (): bool => !table_exists('user_categories'),
+        ],
+        [
+            'file'    => '012_remove_ticket_assigned_users.sql',
+            'label'   => 'Remove per-user ticket assignment (groups only)',
+            'applied' => fn (): bool => !table_exists('ticket_assigned_users'),
         ],
     ];
 }
