@@ -161,6 +161,19 @@ function ticket_staff_link(int $ticketId): string
 }
 
 /**
+ * A stable Message-ID (RFC 5322 §3.6.4 format) shared by every email sent
+ * about one ticket, so mail clients (Gmail included) thread them together.
+ * The first email for a ticket sets this as its own Message-ID; every later
+ * one references it via In-Reply-To/References -- see send_ticket_email().
+ */
+function ticket_thread_message_id(int $ticketId): string
+{
+    $host = parse_url(base_url(), PHP_URL_HOST) ?: 'localhost';
+    $host = preg_replace('/[^A-Za-z0-9.-]/', '', $host) ?: 'localhost';
+    return '<ticket-' . $ticketId . '@' . $host . '>';
+}
+
+/**
  * Email addresses of active (non-disabled) users in a ticket's assigned
  * groups, deduplicated. Used to notify agents when a submitter replies.
  */

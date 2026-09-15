@@ -107,13 +107,33 @@ function configured_mailer(): PHPMailer
  * failure (including when SMTP isn't configured yet) -- callers decide
  * whether that should block the surrounding action, surface a warning, or
  * just be logged.
+ *
+ * When $ticketId is given, every email about that ticket shares one
+ * Message-ID (see ticket_thread_message_id()) so mail clients thread them
+ * together: the first one ($isRoot) sends it as its own Message-ID, and
+ * every later one references it via In-Reply-To/References -- the same
+ * mechanism a real reply chain uses, just synthesized since these emails
+ * usually aren't actual replies to each other (e.g. a submitter's
+ * confirmation and the agent notification fire independently, but should
+ * still land in one thread per recipient's mailbox).
  */
-function send_ticket_email(string $toEmail, string $subject, string $body): void
+function send_ticket_email(string $toEmail, string $subject, string $body, ?int $ticketId = null, bool $isRoot = false): void
 {
     $mail = configured_mailer();
     $mail->addAddress($toEmail);
     $mail->Subject = $subject;
     $mail->Body = $body;
+
+    if ($ticketId !== null) {
+        $anchor = ticket_thread_message_id($ticketId);
+        if ($isRoot) {
+            $mail->MessageID = $anchor;
+        } else {
+            $mail->addCustomHeader('In-Reply-To', $anchor);
+            $mail->addCustomHeader('References', $anchor);
+        }
+    }
+
     $mail->send();
 }
 
@@ -132,7 +152,10 @@ function send_test_email(string $toEmail): void
     );
 }
 
-/** Sent once, right after a ticket is submitted. */
+/**
+ * Sent once, right after a ticket is submitted. This is the root of the
+ * ticket's email thread -- see send_ticket_email().
+ */
 function send_ticket_confirmation_email(array $ticket): void
 {
     $link = ticket_public_link($ticket['public_token']);
@@ -140,7 +163,7 @@ function send_ticket_confirmation_email(array $ticket): void
     $body = "Hi {$ticket['requester_name']},\n\n"
         . "We've received your ticket and will get back to you soon.\n\n"
         . "You can check its status, see any responses, and add additional comments at any time:\n{$link}\n";
-    send_ticket_email($ticket['requester_email'], $subject, $body);
+    send_ticket_email($ticket['requester_email'], $subject, $body, (int) $ticket['id'], true);
 }
 
 /**
@@ -153,7 +176,7 @@ function notify_ticket_agents(int $ticketId, string $subject, string $body): voi
 {
     foreach (ticket_assigned_agent_emails($ticketId) as $recipient) {
         try {
-            send_ticket_email($recipient['email'], $subject, $body);
+            send_ticket_email($recipient['email'], $subject, $body, $ticketId);
         } catch (Throwable $e) {
             error_log("Failed to notify {$recipient['email']} about ticket #{$ticketId}: " . $e->getMessage());
         }
@@ -193,5 +216,5 @@ function send_ticket_update_notification(array $ticket): void
     $subject = 'Update on ticket #' . $ticket['id'] . ': ' . $ticket['subject'];
     $body = "Hi {$ticket['requester_name']},\n\n"
         . "There's an update on your ticket. View its current status and any new responses here:\n{$link}\n";
-    send_ticket_email($ticket['requester_email'], $subject, $body);
+    send_ticket_email($ticket['requester_email'], $subject, $body, (int) $ticket['id']);
 }
