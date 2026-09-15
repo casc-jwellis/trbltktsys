@@ -1,9 +1,10 @@
 <?php
 require __DIR__ . '/includes/bootstrap.php';
 require_once __DIR__ . '/includes/admin.php';
+require_once __DIR__ . '/includes/mail.php';
 require_admin();
 
-$activeTab = in_array($_GET['tab'] ?? '', ['groups', 'categories', 'responses', 'database'], true) ? $_GET['tab'] : 'users';
+$activeTab = in_array($_GET['tab'] ?? '', ['groups', 'categories', 'responses', 'email', 'database'], true) ? $_GET['tab'] : 'users';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf()) {
@@ -323,6 +324,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('success', 'Canned response removed.');
         }
         $activeTab = 'responses';
+    } elseif ($action === 'update_smtp_settings') {
+        if (!smtp_settings_supported()) {
+            flash('error', 'The database is out of date. Visit migrate.php to enable email settings.');
+        } else {
+            $host = trim((string) ($_POST['host'] ?? ''));
+            $port = (int) ($_POST['port'] ?? 0);
+            $encryption = (string) ($_POST['encryption'] ?? '');
+            $username = trim((string) ($_POST['username'] ?? ''));
+            $newPassword = (string) ($_POST['password'] ?? '');
+            $fromEmail = trim((string) ($_POST['from_email'] ?? ''));
+            $fromName = trim((string) ($_POST['from_name'] ?? ''));
+
+            $errors = [];
+            if ($host === '' || strlen($host) > 150) {
+                $errors[] = 'Please enter an SMTP host (up to 150 characters).';
+            }
+            if ($port < 1 || $port > 65535) {
+                $errors[] = 'Please enter a valid port number (1-65535).';
+            }
+            if (!in_array($encryption, SMTP_ENCRYPTIONS, true)) {
+                $errors[] = 'Please choose a valid encryption method.';
+            }
+            if (!filter_var($fromEmail, FILTER_VALIDATE_EMAIL)) {
+                $errors[] = 'Please enter a valid "From" email address.';
+            }
+
+            if (!$errors) {
+                save_smtp_settings(
+                    $host,
+                    $port,
+                    $encryption,
+                    $username,
+                    $newPassword !== '' ? $newPassword : null,
+                    $fromEmail,
+                    $fromName
+                );
+                flash('success', 'Email settings updated.');
+            } else {
+                flash('error', implode(' ', $errors));
+            }
+        }
+        $activeTab = 'email';
+    } elseif ($action === 'send_test_email') {
+        $testEmail = trim((string) ($_POST['test_email'] ?? ''));
+
+        if (!filter_var($testEmail, FILTER_VALIDATE_EMAIL)) {
+            flash('error', 'Please enter a valid email address to send the test to.');
+        } else {
+            try {
+                send_test_email($testEmail);
+                flash('success', 'Test email sent to ' . $testEmail . '.');
+            } catch (Throwable $e) {
+                flash('error', 'Could not send the test email: ' . $e->getMessage());
+            }
+        }
+        $activeTab = 'email';
     } elseif ($action === 'purge_database') {
         $confirmation = trim((string) ($_POST['confirmation'] ?? ''));
 
@@ -354,6 +411,7 @@ $groupCategoryMap = group_category_id_map();
 $groups = $allGroups;
 $categories = all_categories_with_counts();
 $cannedResponses = all_canned_responses();
+$smtpSettings = get_smtp_settings();
 
 $pageTitle = 'Admin Settings';
 require __DIR__ . '/includes/header.php';
@@ -378,6 +436,9 @@ require __DIR__ . '/includes/header.php';
         <a class="nav-link <?= $activeTab === 'responses' ? 'active' : '' ?>" href="admin-settings.php?tab=responses">Responses</a>
     </li>
     <li class="nav-item">
+        <a class="nav-link <?= $activeTab === 'email' ? 'active' : '' ?>" href="admin-settings.php?tab=email">Email</a>
+    </li>
+    <li class="nav-item">
         <a class="nav-link <?= $activeTab === 'database' ? 'active' : '' ?>" href="admin-settings.php?tab=database">Database</a>
     </li>
 </ul>
@@ -388,6 +449,8 @@ require __DIR__ . '/includes/header.php';
     <?php require __DIR__ . '/includes/admin-categories-tab.php'; ?>
 <?php elseif ($activeTab === 'responses'): ?>
     <?php require __DIR__ . '/includes/admin-responses-tab.php'; ?>
+<?php elseif ($activeTab === 'email'): ?>
+    <?php require __DIR__ . '/includes/admin-email-tab.php'; ?>
 <?php elseif ($activeTab === 'database'): ?>
     <?php require __DIR__ . '/includes/admin-database-tab.php'; ?>
 <?php else: ?>

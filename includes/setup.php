@@ -114,6 +114,11 @@ function available_migrations(): array
             'label'   => 'Remove per-user ticket assignment (groups only)',
             'applied' => fn (): bool => !table_exists('ticket_assigned_users'),
         ],
+        [
+            'file'    => '013_smtp_settings.sql',
+            'label'   => 'SMTP email settings',
+            'applied' => fn (): bool => table_exists('smtp_settings'),
+        ],
     ];
 }
 

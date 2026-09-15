@@ -16,8 +16,9 @@ A simple PHP trouble ticket system.
 - **Admin settings** (`admin-settings.php`) — Administrator-only. Create, edit, disable, or remove
   helpdesk accounts (with an Administrator flag) and assign them to groups, assign ticket
   categories to groups (category permissions are group-based only), manage the category list
-  itself, maintain a library of canned responses (Responses tab), and (from the Database tab)
-  purge all data.
+  itself, maintain a library of canned responses (Responses tab), configure outgoing SMTP mail
+  and send a test message to confirm it works (Email tab), and (from the Database tab) purge all
+  data.
 - **Database migrations** (`migrate.php`) — applies any pending schema changes after a `git pull`,
   from the browser.
 
@@ -43,4 +44,7 @@ Once nothing is pending it just links to the login page.
 
 ## Stack
 
-Plain PHP (PDO) + MySQL, Bootstrap 5 for styling. No build step or dependencies required.
+Plain PHP (PDO) + MySQL, Bootstrap 5 for styling. No build step or Composer required. The one
+exception is [PHPMailer](https://github.com/PHPMailer/PHPMailer), vendored by hand (not via
+Composer) in `lib/phpmailer/` and used to send mail via the SMTP settings configured under Admin
+Settings -> Email.
