@@ -49,8 +49,8 @@ function ticket_assignments_supported(): bool
 }
 
 /**
- * Seeds a newly submitted ticket's assignment from whichever users/groups
- * are configured (Admin Settings -> Categories) to handle its category.
+ * Seeds a newly submitted ticket's assignment from whichever groups are
+ * configured (Admin Settings -> Categories) to handle its category.
  */
 function assign_ticket_by_category(int $ticketId, string $category): void
 {
@@ -65,9 +65,6 @@ function assign_ticket_by_category(int $ticketId, string $category): void
     if ($categoryId === false) {
         return;
     }
-
-    $stmt = db()->prepare('INSERT INTO ticket_assigned_users (ticket_id, user_id) SELECT ?, user_id FROM user_categories WHERE category_id = ?');
-    $stmt->execute([$ticketId, $categoryId]);
 
     $stmt = db()->prepare('INSERT INTO ticket_assigned_groups (ticket_id, group_id) SELECT ?, group_id FROM group_categories WHERE category_id = ?');
     $stmt->execute([$ticketId, $categoryId]);

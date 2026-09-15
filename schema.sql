@@ -31,14 +31,6 @@ CREATE TABLE categories (
 
 INSERT INTO categories (name) VALUES ('General'), ('Hardware'), ('Software'), ('Network'), ('Account Access'), ('Other');
 
-CREATE TABLE user_categories (
-    user_id     INT UNSIGNED NOT NULL,
-    category_id INT UNSIGNED NOT NULL,
-    PRIMARY KEY (user_id, category_id),
-    CONSTRAINT fk_user_categories_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_user_categories_category FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 CREATE TABLE group_categories (
     group_id    INT UNSIGNED NOT NULL,
     category_id INT UNSIGNED NOT NULL,
@@ -74,10 +66,10 @@ CREATE TABLE tickets (
 CREATE INDEX idx_tickets_status ON tickets(status);
 CREATE INDEX idx_tickets_category ON tickets(category);
 
--- Who a ticket is currently assigned to. Seeded from user_categories /
--- group_categories for the ticket's category when it's submitted, and
--- freely editable afterward by helpdesk agents (a ticket can be assigned
--- to any number of users and/or groups at once).
+-- Who a ticket is currently assigned to. Seeded from group_categories for
+-- the ticket's category when it's submitted, and freely editable afterward
+-- by helpdesk agents (a ticket can be assigned to any number of users
+-- and/or groups at once).
 CREATE TABLE ticket_assigned_users (
     ticket_id INT UNSIGNED NOT NULL,
     user_id   INT UNSIGNED NOT NULL,

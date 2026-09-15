@@ -2,9 +2,7 @@
 /**
  * @var array $users
  * @var array $allGroups
- * @var array $allCategories
  * @var array $userGroupMap
- * @var array $userCategoryMap
  */
 $myId = current_user_id();
 ?>
@@ -27,14 +25,13 @@ $myId = current_user_id();
                     <th>Phone</th>
                     <th>Admin</th>
                     <th>Groups</th>
-                    <th>Categories</th>
                     <th>Status</th>
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (!$users): ?>
-                    <tr><td colspan="9" class="text-center text-body-secondary py-4">No users found.</td></tr>
+                    <tr><td colspan="8" class="text-center text-body-secondary py-4">No users found.</td></tr>
                 <?php endif; ?>
                 <?php foreach ($users as $user): ?>
                     <tr>
@@ -44,7 +41,6 @@ $myId = current_user_id();
                         <td><?= e($user['phone'] ?: '—') ?></td>
                         <td><?= (int) $user['is_admin'] === 1 ? '<span class="badge text-bg-primary">Administrator</span>' : '—' ?></td>
                         <td><?= e($user['group_names'] ?: '—') ?></td>
-                        <td><?= e($user['category_names'] ?: '—') ?></td>
                         <td>
                             <?php if ((int) $user['disabled'] === 1): ?>
                                 <span class="badge text-bg-secondary">Disabled</span>
@@ -154,27 +150,6 @@ $myId = current_user_id();
                             </div>
                         <?php endif; ?>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label d-block">Categories</label>
-                        <?php if (!$allCategories): ?>
-                            <p class="text-body-secondary small mb-0">No categories yet — create one on the Categories tab.</p>
-                        <?php else: ?>
-                            <div class="assignment-picker">
-                                <div class="assignment-pills mb-2"></div>
-                                <input type="text" class="form-control form-control-sm assignment-search" placeholder="Search categories...">
-                                <div class="list-group assignment-dropdown"></div>
-                                <div class="assignment-options">
-                                    <?php foreach ($allCategories as $category): ?>
-                                        <div class="form-check assignment-option">
-                                            <input class="form-check-input" type="checkbox" name="categories[]"
-                                                   value="<?= (int) $category['id'] ?>" id="new_category_<?= (int) $category['id'] ?>">
-                                            <label class="form-check-label" for="new_category_<?= (int) $category['id'] ?>"><?= e($category['name']) ?></label>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                            </div>
-                        <?php endif; ?>
-                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -189,7 +164,6 @@ $myId = current_user_id();
     <?php
     $uid = (int) $user['id'];
     $userGroupIds = $userGroupMap[$uid] ?? [];
-    $userCategoryIds = $userCategoryMap[$uid] ?? [];
     ?>
     <div class="modal fade" id="editUserModal<?= $uid ?>" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
@@ -248,28 +222,6 @@ $myId = current_user_id();
                                                        value="<?= (int) $group['id'] ?>" id="edit_group_<?= $uid ?>_<?= (int) $group['id'] ?>"
                                                        <?= in_array((int) $group['id'], $userGroupIds, true) ? 'checked' : '' ?>>
                                                 <label class="form-check-label" for="edit_group_<?= $uid ?>_<?= (int) $group['id'] ?>"><?= e($group['name']) ?></label>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                </div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label d-block">Categories</label>
-                            <?php if (!$allCategories): ?>
-                                <p class="text-body-secondary small mb-0">No categories yet — create one on the Categories tab.</p>
-                            <?php else: ?>
-                                <div class="assignment-picker">
-                                    <div class="assignment-pills mb-2"></div>
-                                    <input type="text" class="form-control form-control-sm assignment-search" placeholder="Search categories...">
-                                    <div class="list-group assignment-dropdown"></div>
-                                    <div class="assignment-options">
-                                        <?php foreach ($allCategories as $category): ?>
-                                            <div class="form-check assignment-option">
-                                                <input class="form-check-input" type="checkbox" name="categories[]"
-                                                       value="<?= (int) $category['id'] ?>" id="edit_category_<?= $uid ?>_<?= (int) $category['id'] ?>"
-                                                       <?= in_array((int) $category['id'], $userCategoryIds, true) ? 'checked' : '' ?>>
-                                                <label class="form-check-label" for="edit_category_<?= $uid ?>_<?= (int) $category['id'] ?>"><?= e($category['name']) ?></label>
                                             </div>
                                         <?php endforeach; ?>
                                     </div>

@@ -30,20 +30,18 @@
                         <tr>
                             <th>Name</th>
                             <th>Tickets</th>
-                            <th>Users</th>
                             <th>Groups</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (!$categories): ?>
-                            <tr><td colspan="5" class="text-center text-body-secondary py-4">No categories yet.</td></tr>
+                            <tr><td colspan="4" class="text-center text-body-secondary py-4">No categories yet.</td></tr>
                         <?php endif; ?>
                         <?php foreach ($categories as $category): ?>
                             <tr>
                                 <td><?= e($category['name']) ?></td>
                                 <td><?= (int) $category['ticket_count'] ?></td>
-                                <td><?= (int) $category['user_count'] ?></td>
                                 <td><?= (int) $category['group_count'] ?></td>
                                 <td class="text-end">
                                     <div class="d-inline-flex gap-1">

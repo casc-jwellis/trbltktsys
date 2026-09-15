@@ -25,7 +25,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $passwordConfirm = (string) ($_POST['password_confirm'] ?? '');
         $isAdmin = isset($_POST['is_admin']);
         $groupIds = valid_ids_from_post($_POST['groups'] ?? [], $allGroups);
-        $categoryIds = valid_ids_from_post($_POST['categories'] ?? [], $allCategories);
 
         $errors = [];
         if ($username === '' || strlen($username) > 50) {
@@ -69,11 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $groupStmt->execute([$newUserId, $groupId]);
                 }
 
-                $categoryStmt = db()->prepare('INSERT INTO user_categories (user_id, category_id) VALUES (?, ?)');
-                foreach ($categoryIds as $categoryId) {
-                    $categoryStmt->execute([$newUserId, $categoryId]);
-                }
-
                 db()->commit();
                 flash('success', 'Created user "' . $fullName . '".');
             } catch (PDOException $e) {
@@ -94,7 +88,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $newPassword = (string) ($_POST['new_password'] ?? '');
         $isAdmin = isset($_POST['is_admin']);
         $groupIds = valid_ids_from_post($_POST['groups'] ?? [], $allGroups);
-        $categoryIds = valid_ids_from_post($_POST['categories'] ?? [], $allCategories);
 
         $errors = [];
         if ($username === '' || strlen($username) > 50) {
@@ -138,12 +131,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $groupStmt = db()->prepare('INSERT INTO user_agent_groups (user_id, group_id) VALUES (?, ?)');
                 foreach ($groupIds as $groupId) {
                     $groupStmt->execute([$userId, $groupId]);
-                }
-
-                db()->prepare('DELETE FROM user_categories WHERE user_id = ?')->execute([$userId]);
-                $categoryStmt = db()->prepare('INSERT INTO user_categories (user_id, category_id) VALUES (?, ?)');
-                foreach ($categoryIds as $categoryId) {
-                    $categoryStmt->execute([$userId, $categoryId]);
                 }
 
                 db()->commit();
@@ -361,9 +348,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $allGroups = all_groups();
 $allCategories = all_categories();
-$users = all_users_with_groups_and_categories();
+$users = all_users_with_groups();
 $userGroupMap = user_group_id_map();
-$userCategoryMap = user_category_id_map();
 $groupCategoryMap = group_category_id_map();
 $groups = $allGroups;
 $categories = all_categories_with_counts();

@@ -21,28 +21,23 @@ function all_categories_with_counts(): array
     return db()->query(
         'SELECT c.id, c.name,
                 COUNT(DISTINCT t.id) AS ticket_count,
-                COUNT(DISTINCT uc.user_id) AS user_count,
                 COUNT(DISTINCT gc.group_id) AS group_count
          FROM categories c
          LEFT JOIN tickets t ON t.category = c.name
-         LEFT JOIN user_categories uc ON uc.category_id = c.id
          LEFT JOIN group_categories gc ON gc.category_id = c.id
          GROUP BY c.id
          ORDER BY c.name'
     )->fetchAll();
 }
 
-function all_users_with_groups_and_categories(): array
+function all_users_with_groups(): array
 {
     return db()->query(
         'SELECT u.id, u.username, u.full_name, u.email, u.phone, u.is_admin, u.disabled, u.created_at,
-                GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ", ") AS group_names,
-                GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ", ") AS category_names
+                GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ", ") AS group_names
          FROM users u
          LEFT JOIN user_agent_groups ug ON ug.user_id = u.id
          LEFT JOIN agent_groups g ON g.id = ug.group_id
-         LEFT JOIN user_categories uc ON uc.user_id = u.id
-         LEFT JOIN categories c ON c.id = uc.category_id
          GROUP BY u.id
          ORDER BY u.full_name'
     )->fetchAll();
@@ -53,15 +48,6 @@ function user_group_id_map(): array
     $map = [];
     foreach (db()->query('SELECT user_id, group_id FROM user_agent_groups') as $row) {
         $map[(int) $row['user_id']][] = (int) $row['group_id'];
-    }
-    return $map;
-}
-
-function user_category_id_map(): array
-{
-    $map = [];
-    foreach (db()->query('SELECT user_id, category_id FROM user_categories') as $row) {
-        $map[(int) $row['user_id']][] = (int) $row['category_id'];
     }
     return $map;
 }

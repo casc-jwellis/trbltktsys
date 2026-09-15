@@ -102,6 +102,11 @@ function available_migrations(): array
             'label'   => 'Rename is_locked to disabled',
             'applied' => fn (): bool => column_exists('users', 'disabled'),
         ],
+        [
+            'file'    => '011_remove_user_categories.sql',
+            'label'   => 'Remove per-user category permissions (groups only)',
+            'applied' => fn (): bool => !table_exists('user_categories'),
+        ],
     ];
 }
 
