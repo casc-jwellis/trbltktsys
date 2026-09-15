@@ -109,3 +109,12 @@ CREATE TABLE ticket_comments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX idx_ticket_comments_ticket ON ticket_comments(ticket_id);
+
+-- Pre-written text agents can drop into a ticket response (Admin Settings -> Responses).
+CREATE TABLE canned_responses (
+    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    title      VARCHAR(100) NOT NULL,
+    body       TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

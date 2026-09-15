@@ -3,7 +3,7 @@ require __DIR__ . '/includes/bootstrap.php';
 require_once __DIR__ . '/includes/admin.php';
 require_admin();
 
-$activeTab = in_array($_GET['tab'] ?? '', ['groups', 'categories', 'database'], true) ? $_GET['tab'] : 'users';
+$activeTab = in_array($_GET['tab'] ?? '', ['groups', 'categories', 'responses', 'database'], true) ? $_GET['tab'] : 'users';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf()) {
@@ -292,6 +292,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         $activeTab = 'categories';
+    } elseif ($action === 'create_canned_response') {
+        if (!canned_responses_supported()) {
+            flash('error', 'The database is out of date. Visit migrate.php to enable canned responses.');
+        } else {
+            $title = trim((string) ($_POST['title'] ?? ''));
+            $body = trim((string) ($_POST['body'] ?? ''));
+
+            if ($title === '' || strlen($title) > 100) {
+                flash('error', 'Please enter a title (up to 100 characters).');
+            } elseif ($body === '') {
+                flash('error', 'Please enter the response text.');
+            } else {
+                $stmt = db()->prepare('INSERT INTO canned_responses (title, body) VALUES (?, ?)');
+                $stmt->execute([$title, $body]);
+                flash('success', 'Created canned response "' . $title . '".');
+            }
+        }
+        $activeTab = 'responses';
+    } elseif ($action === 'update_canned_response') {
+        if (!canned_responses_supported()) {
+            flash('error', 'The database is out of date. Visit migrate.php to enable canned responses.');
+        } else {
+            $responseId = (int) ($_POST['response_id'] ?? 0);
+            $title = trim((string) ($_POST['title'] ?? ''));
+            $body = trim((string) ($_POST['body'] ?? ''));
+
+            if ($title === '' || strlen($title) > 100) {
+                flash('error', 'Please enter a title (up to 100 characters).');
+            } elseif ($body === '') {
+                flash('error', 'Please enter the response text.');
+            } else {
+                $stmt = db()->prepare('UPDATE canned_responses SET title = ?, body = ? WHERE id = ?');
+                $stmt->execute([$title, $body, $responseId]);
+                flash('success', 'Updated canned response "' . $title . '".');
+            }
+        }
+        $activeTab = 'responses';
+    } elseif ($action === 'delete_canned_response') {
+        if (canned_responses_supported()) {
+            $responseId = (int) ($_POST['response_id'] ?? 0);
+            db()->prepare('DELETE FROM canned_responses WHERE id = ?')->execute([$responseId]);
+            flash('success', 'Canned response removed.');
+        }
+        $activeTab = 'responses';
     } elseif ($action === 'purge_database') {
         $confirmation = trim((string) ($_POST['confirmation'] ?? ''));
 
@@ -323,6 +367,7 @@ $userCategoryMap = user_category_id_map();
 $groupCategoryMap = group_category_id_map();
 $groups = $allGroups;
 $categories = all_categories_with_counts();
+$cannedResponses = all_canned_responses();
 
 $pageTitle = 'Admin Settings';
 require __DIR__ . '/includes/header.php';
@@ -330,7 +375,7 @@ require __DIR__ . '/includes/header.php';
 
 <div class="mb-4">
     <h1 class="h3 mb-1">Admin Settings</h1>
-    <p class="text-body-secondary mb-0">Manage helpdesk staff accounts, groups, and categories.</p>
+    <p class="text-body-secondary mb-0">Manage helpdesk staff accounts, groups, categories, and canned responses.</p>
 </div>
 
 <ul class="nav nav-tabs mb-4">
@@ -344,6 +389,9 @@ require __DIR__ . '/includes/header.php';
         <a class="nav-link <?= $activeTab === 'categories' ? 'active' : '' ?>" href="admin-settings.php?tab=categories">Categories</a>
     </li>
     <li class="nav-item">
+        <a class="nav-link <?= $activeTab === 'responses' ? 'active' : '' ?>" href="admin-settings.php?tab=responses">Responses</a>
+    </li>
+    <li class="nav-item">
         <a class="nav-link <?= $activeTab === 'database' ? 'active' : '' ?>" href="admin-settings.php?tab=database">Database</a>
     </li>
 </ul>
@@ -352,6 +400,8 @@ require __DIR__ . '/includes/header.php';
     <?php require __DIR__ . '/includes/admin-groups-tab.php'; ?>
 <?php elseif ($activeTab === 'categories'): ?>
     <?php require __DIR__ . '/includes/admin-categories-tab.php'; ?>
+<?php elseif ($activeTab === 'responses'): ?>
+    <?php require __DIR__ . '/includes/admin-responses-tab.php'; ?>
 <?php elseif ($activeTab === 'database'): ?>
     <?php require __DIR__ . '/includes/admin-database-tab.php'; ?>
 <?php else: ?>

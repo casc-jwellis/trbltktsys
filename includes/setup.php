@@ -89,6 +89,11 @@ function available_migrations(): array
             'label'   => 'Ticket response/internal note thread',
             'applied' => fn (): bool => table_exists('ticket_comments'),
         ],
+        [
+            'file'    => '009_canned_responses.sql',
+            'label'   => 'Canned responses',
+            'applied' => fn (): bool => table_exists('canned_responses'),
+        ],
     ];
 }
 

@@ -88,6 +88,7 @@ $assignedGroupIds = ticket_assigned_group_ids($id);
 $agents = assignable_users($assignedUserIds);
 $groups = assignable_groups();
 $comments = ticket_comments($id);
+$cannedResponses = all_canned_responses();
 
 $assignedUserNames = array_values(array_intersect_key(
     array_column($agents, 'full_name', 'id'),
@@ -205,6 +206,17 @@ require __DIR__ . '/includes/header.php';
         <form method="post" id="manageTicketForm">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="manage_ticket">
+            <?php if ($cannedResponses): ?>
+                <div class="mb-3">
+                    <label class="form-label" for="canned_response">Canned Response</label>
+                    <select class="form-select form-select-sm" id="canned_response">
+                        <option value="">Insert a canned response…</option>
+                        <?php foreach ($cannedResponses as $cannedResponse): ?>
+                            <option value="<?= e($cannedResponse['body']) ?>"><?= e($cannedResponse['title']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
             <div class="mb-3">
                 <label class="form-label" for="response">Response to Submitter</label>
                 <textarea class="form-control" id="response" name="response" rows="4" placeholder="Type a reply the submitter will see..."></textarea>

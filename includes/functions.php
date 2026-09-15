@@ -14,6 +14,25 @@ function category_names(): array
     return array_column(all_categories(), 'name');
 }
 
+/** Whether the canned_responses table exists yet (migration 009). */
+function canned_responses_supported(): bool
+{
+    static $result = null;
+    if ($result === null) {
+        $result = table_exists('canned_responses');
+    }
+    return $result;
+}
+
+/** Canned responses are managed in the database (Admin Settings -> Responses). */
+function all_canned_responses(): array
+{
+    if (!canned_responses_supported()) {
+        return [];
+    }
+    return db()->query('SELECT id, title, body FROM canned_responses ORDER BY title')->fetchAll();
+}
+
 /**
  * Whether the ticket_assigned_users/ticket_assigned_groups tables exist yet
  * (migration 007). Guards every ticket-assignment function below so a
