@@ -11,9 +11,17 @@ $isAdmin = is_admin();
 $where = [];
 $params = [];
 
-if (in_array($statusFilter, TICKET_STATUSES, true)) {
+if ($statusFilter === 'all') {
+    // No status filter -- show every ticket regardless of status.
+} elseif (in_array($statusFilter, TICKET_STATUSES, true)) {
     $where[] = 't.status = ?';
     $params[] = $statusFilter;
+} else {
+    // Default view: hide Resolved/Closed tickets so the queue only shows
+    // what still needs attention.
+    $where[] = 't.status IN (?, ?)';
+    $params[] = 'Open';
+    $params[] = 'In Progress';
 }
 if (in_array($categoryFilter, category_names(), true)) {
     $where[] = 't.category = ?';
@@ -73,7 +81,8 @@ require __DIR__ . '/includes/header.php';
     </div>
     <form class="d-flex gap-2" method="get">
         <select class="form-select form-select-sm" name="status" onchange="this.form.submit()">
-            <option value="">All Statuses</option>
+            <option value="" <?= $statusFilter === '' ? 'selected' : '' ?>>Open &amp; In Progress</option>
+            <option value="all" <?= $statusFilter === 'all' ? 'selected' : '' ?>>All Statuses</option>
             <?php foreach (TICKET_STATUSES as $status): ?>
                 <option value="<?= e($status) ?>" <?= $statusFilter === $status ? 'selected' : '' ?>><?= e($status) ?></option>
             <?php endforeach; ?>
