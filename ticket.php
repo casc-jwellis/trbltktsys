@@ -135,7 +135,7 @@ require __DIR__ . '/includes/header.php';
         <h1 class="h4"><?= e($ticket['subject']) ?></h1>
         <p class="text-body-secondary mb-4 d-flex align-items-center flex-wrap gap-2">
             <span>Submitted by <?= e($ticket['requester_name']) ?></span>
-            <button type="button" class="btn btn-link btn-sm p-0 align-baseline" data-bs-toggle="modal" data-bs-target="#requesterInfoModal">(User Info)</button>
+            <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-decoration-none text-body-secondary" data-bs-toggle="modal" data-bs-target="#requesterInfoModal">(User Information)</button>
             <span>on <?= e(date('M j, Y g:i A', strtotime($ticket['created_at']))) ?></span>
         </p>
         <p style="white-space: pre-wrap;"><?= e($ticket['description']) ?></p>
