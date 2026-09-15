@@ -39,7 +39,7 @@ function all_users_with_groups(): array
          LEFT JOIN user_agent_groups ug ON ug.user_id = u.id
          LEFT JOIN agent_groups g ON g.id = ug.group_id
          GROUP BY u.id
-         ORDER BY u.full_name'
+         ORDER BY u.is_admin DESC, u.full_name'
     )->fetchAll();
 }
 

@@ -16,16 +16,16 @@ $myId = current_user_id();
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0 sortable-table">
             <thead>
                 <tr>
-                    <th>Full Name</th>
-                    <th>Username</th>
-                    <th>Email</th>
-                    <th>Phone</th>
+                    <th data-sort>Full Name</th>
+                    <th data-sort>Username</th>
+                    <th data-sort>Email</th>
+                    <th data-sort>Phone</th>
                     <th>Admin</th>
-                    <th>Groups</th>
-                    <th>Status</th>
+                    <th data-sort>Groups</th>
+                    <th data-sort>Status</th>
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
@@ -34,7 +34,7 @@ $myId = current_user_id();
                     <tr><td colspan="8" class="text-center text-body-secondary py-4">No users found.</td></tr>
                 <?php endif; ?>
                 <?php foreach ($users as $user): ?>
-                    <tr>
+                    <tr data-admin-group="<?= (int) $user['is_admin'] === 1 ? '1' : '0' ?>">
                         <td><?= e($user['full_name']) ?></td>
                         <td><?= e($user['username']) ?></td>
                         <td><?= $user['email'] ? '<a href="mailto:' . e($user['email']) . '">' . e($user['email']) . '</a>' : '—' ?></td>

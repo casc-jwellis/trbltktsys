@@ -101,6 +101,23 @@ body {
     vertical-align: middle;
 }
 
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.sortable-header:hover {
+    color: var(--brand);
+}
+
+.sort-indicator {
+    display: inline-block;
+    width: 1em;
+    font-size: .7em;
+    margin-left: .25rem;
+}
+
 .app-footer {
     border-top: 1px solid #ececf3;
 }
