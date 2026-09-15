@@ -122,7 +122,7 @@ require __DIR__ . '/includes/header.php';
         <h1 class="h4"><?= e($ticket['subject']) ?></h1>
         <p class="text-body-secondary mb-4 d-flex align-items-center flex-wrap gap-2">
             <span>Submitted by <?= e($ticket['requester_name']) ?></span>
-            <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-decoration-none text-body-secondary" data-bs-toggle="modal" data-bs-target="#requesterInfoModal">(User Information)</button>
+            <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-decoration-none text-body-secondary" data-toggle="modal" data-target="#requesterInfoModal">(User Information)</button>
             <span>on <?= e(date('M j, Y g:i A', strtotime($ticket['created_at']))) ?></span>
         </p>
         <p style="white-space: pre-wrap;"><?= e($ticket['description']) ?></p>
@@ -163,16 +163,14 @@ require __DIR__ . '/includes/header.php';
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         Respond &amp; Manage Ticket
         <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#internalNoteModal">+ Add Internal Note</button>
+            <button type="button" class="btn btn-outline-warning btn-sm" data-toggle="modal" data-target="#internalNoteModal">+ Add Internal Note</button>
             <?php if (ticket_assignments_supported()): ?>
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#reassignModal">Reassign</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-toggle="modal" data-target="#reassignModal">Reassign</button>
                 <span
                     class="text-body-secondary d-inline-flex"
                     style="cursor: help;"
                     tabindex="0"
-                    data-bs-toggle="tooltip"
-                    data-bs-html="true"
-                    data-bs-placement="bottom"
+                    data-tooltip
                     title="<?= e($assigneeTooltipHtml) ?>"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -230,14 +228,14 @@ require __DIR__ . '/includes/header.php';
                 <input type="hidden" name="action" value="add_internal_note">
                 <div class="modal-header">
                     <h5 class="modal-title" id="internalNoteModalLabel">Add Internal Note</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <textarea class="form-control" name="internal_note" rows="5" placeholder="Only visible to helpdesk staff..." required></textarea>
                     <div class="form-text">Not sent to the submitter — visible only to helpdesk staff.</div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-warning">Add Note</button>
                 </div>
             </form>
@@ -254,7 +252,7 @@ require __DIR__ . '/includes/header.php';
                 <input type="hidden" name="action" value="reassign_ticket">
                 <div class="modal-header">
                     <h5 class="modal-title" id="reassignModalLabel">Reassign Ticket</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-0">
@@ -279,7 +277,7 @@ require __DIR__ . '/includes/header.php';
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save Assignment</button>
                 </div>
             </form>
@@ -293,7 +291,7 @@ require __DIR__ . '/includes/header.php';
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="requesterInfoModalLabel">User Information</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <dl class="row mb-0">
@@ -317,7 +315,7 @@ require __DIR__ . '/includes/header.php';
                 </dl>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

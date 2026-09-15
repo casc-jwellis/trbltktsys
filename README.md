@@ -43,4 +43,6 @@ Once nothing is pending it just links to the login page.
 
 ## Stack
 
-Plain PHP (PDO) + MySQL, Bootstrap 5 for styling. No build step or dependencies required.
+Plain PHP (PDO) + MySQL. Styling and JS (modals, tooltips, the assignment picker) are all
+hand-written vanilla CSS/JS in `assets/` — no framework, build step, or external dependencies
+beyond the Inter font.
