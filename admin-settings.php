@@ -436,7 +436,7 @@ require __DIR__ . '/includes/header.php';
         <a class="nav-link <?= $activeTab === 'responses' ? 'active' : '' ?>" href="admin-settings.php?tab=responses">Responses</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link <?= $activeTab === 'email' ? 'active' : '' ?>" href="admin-settings.php?tab=email">Email</a>
+        <a class="nav-link <?= $activeTab === 'email' ? 'active' : '' ?>" href="admin-settings.php?tab=email">Email Server</a>
     </li>
     <li class="nav-item">
         <a class="nav-link <?= $activeTab === 'database' ? 'active' : '' ?>" href="admin-settings.php?tab=database">Database</a>
