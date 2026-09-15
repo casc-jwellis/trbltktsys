@@ -153,13 +153,25 @@ function send_test_email(string $toEmail): void
 }
 
 /**
+ * Gmail (unlike most other mail clients) only groups messages into one
+ * conversation when the Subject also matches, in addition to
+ * References/In-Reply-To -- so every email about a ticket must share this
+ * exact subject verbatim. Anything distinguishing one email from another
+ * (e.g. "new reply", "update") belongs in the body instead.
+ */
+function ticket_email_subject(int $ticketId, string $ticketSubject): string
+{
+    return 'Ticket #' . $ticketId . ': ' . $ticketSubject;
+}
+
+/**
  * Sent once, right after a ticket is submitted. This is the root of the
  * ticket's email thread -- see send_ticket_email().
  */
 function send_ticket_confirmation_email(array $ticket): void
 {
     $link = ticket_public_link($ticket['public_token']);
-    $subject = 'Ticket #' . $ticket['id'] . ' received: ' . $ticket['subject'];
+    $subject = ticket_email_subject((int) $ticket['id'], $ticket['subject']);
     $body = "Hi {$ticket['requester_name']},\n\n"
         . "We've received your ticket and will get back to you soon.\n\n"
         . "You can check its status, see any responses, and add additional comments at any time:\n{$link}\n";
@@ -187,7 +199,7 @@ function notify_ticket_agents(int $ticketId, string $subject, string $body): voi
 function send_new_ticket_notification(int $ticketId, string $ticketSubject): void
 {
     $link = ticket_staff_link($ticketId);
-    $subject = 'New ticket #' . $ticketId . ': ' . $ticketSubject;
+    $subject = ticket_email_subject($ticketId, $ticketSubject);
     $body = "A new ticket was submitted and assigned to your group:\n{$ticketSubject}\n\n{$link}\n";
     notify_ticket_agents($ticketId, $subject, $body);
 }
@@ -199,7 +211,7 @@ function send_new_ticket_notification(int $ticketId, string $ticketSubject): voi
 function send_ticket_reply_notification(int $ticketId, string $ticketSubject): void
 {
     $link = ticket_staff_link($ticketId);
-    $subject = 'New reply on ticket #' . $ticketId . ': ' . $ticketSubject;
+    $subject = ticket_email_subject($ticketId, $ticketSubject);
     $body = "The submitter added a new reply on ticket #{$ticketId}:\n{$ticketSubject}\n\n{$link}\n";
     notify_ticket_agents($ticketId, $subject, $body);
 }
@@ -213,7 +225,7 @@ function send_ticket_reply_notification(int $ticketId, string $ticketSubject): v
 function send_ticket_update_notification(array $ticket): void
 {
     $link = ticket_public_link($ticket['public_token']);
-    $subject = 'Update on ticket #' . $ticket['id'] . ': ' . $ticket['subject'];
+    $subject = ticket_email_subject((int) $ticket['id'], $ticket['subject']);
     $body = "Hi {$ticket['requester_name']},\n\n"
         . "There's an update on your ticket. View its current status and any new responses here:\n{$link}\n";
     send_ticket_email($ticket['requester_email'], $subject, $body, (int) $ticket['id']);
