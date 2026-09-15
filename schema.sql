@@ -57,6 +57,9 @@ CREATE TABLE tickets (
     priority         VARCHAR(10) NOT NULL DEFAULT 'Medium',
     status           VARCHAR(20) NOT NULL DEFAULT 'Open',
     attachment_path  VARCHAR(255) NULL,
+    -- Lets a submitter view status/responses and post replies without
+    -- logging in (see ticket-status.php). Set once at submission time.
+    public_token     CHAR(64) NULL UNIQUE,
     created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_tickets_requester FOREIGN KEY (requester_email) REFERENCES requesters(email) ON UPDATE CASCADE,

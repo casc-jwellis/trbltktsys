@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/mail.php';
 require_login();
 
 $id = (int) ($_GET['id'] ?? 0);
@@ -74,7 +75,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 db()->commit();
 
-                flash('success', 'Ticket #' . $id . ' updated.');
+                $mailError = null;
+                if (ticket_public_tokens_supported() && !empty($ticket['public_token'])) {
+                    try {
+                        send_ticket_update_notification($ticket);
+                    } catch (Throwable $e) {
+                        $mailError = $e->getMessage();
+                    }
+                }
+
+                if ($mailError !== null) {
+                    flash('error', 'Ticket #' . $id . ' updated, but the notification email to the submitter failed to send: ' . $mailError);
+                } else {
+                    flash('success', 'Ticket #' . $id . ' updated.');
+                }
                 header('Location: ticket.php?id=' . $id);
                 exit;
             }
@@ -145,13 +159,19 @@ require __DIR__ . '/includes/header.php';
             <p class="text-body-secondary mb-0">No responses yet.</p>
         <?php else: ?>
             <?php foreach ($comments as $comment): ?>
-                <?php $isInternal = (int) $comment['is_internal'] === 1; ?>
+                <?php
+                $isInternal = (int) $comment['is_internal'] === 1;
+                // A null author means the submitter posted it themselves via
+                // ticket-status.php -- they're never able to post internal notes.
+                $fromSubmitter = $comment['author_name'] === null;
+                $authorName = $fromSubmitter ? $ticket['requester_name'] : $comment['author_name'];
+                ?>
                 <div class="border-start <?= $isInternal ? 'border-warning' : 'border-primary' ?> border-3 <?= $isInternal ? 'bg-warning-subtle' : 'bg-body-tertiary' ?> rounded p-3 mb-3">
                     <div class="d-flex justify-content-between align-items-start mb-1 gap-2">
-                        <span class="badge <?= $isInternal ? 'text-bg-warning' : 'text-bg-primary' ?>"><?= $isInternal ? 'Internal Note' : 'Response to Submitter' ?></span>
+                        <span class="badge <?= $isInternal ? 'text-bg-warning' : 'text-bg-primary' ?>"><?= $isInternal ? 'Internal Note' : ($fromSubmitter ? 'From Submitter' : 'Response to Submitter') ?></span>
                         <small class="text-body-secondary text-nowrap"><?= e(date('M j, Y g:i A', strtotime($comment['created_at']))) ?></small>
                     </div>
-                    <p class="mb-1 fw-semibold"><?= e($comment['author_name'] ?? 'Unknown') ?></p>
+                    <p class="mb-1 fw-semibold"><?= e($authorName) ?></p>
                     <p class="mb-0" style="white-space: pre-wrap;"><?= e($comment['body']) ?></p>
                 </div>
             <?php endforeach; ?>

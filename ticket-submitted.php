@@ -2,7 +2,8 @@
 require __DIR__ . '/includes/bootstrap.php';
 
 $id = (int) ($_GET['id'] ?? 0);
-$stmt = db()->prepare('SELECT id, subject, created_at FROM tickets WHERE id = ?');
+$columns = 'id, subject, created_at' . (ticket_public_tokens_supported() ? ', public_token' : '');
+$stmt = db()->prepare("SELECT {$columns} FROM tickets WHERE id = ?");
 $stmt->execute([$id]);
 $ticket = $stmt->fetch();
 
@@ -22,6 +23,12 @@ require __DIR__ . '/includes/header.php';
             <p class="text-body-secondary">Our helpdesk team will reach out by email as they work on it.</p>
             <p class="fs-4 fw-semibold my-4">Ticket #<?= e((string) $ticket['id']) ?></p>
             <p class="text-body-secondary mb-4"><?= e($ticket['subject']) ?></p>
+            <?php if (!empty($ticket['public_token'])): ?>
+                <p class="mb-4">
+                    <a href="<?= e('ticket-status.php?token=' . $ticket['public_token']) ?>">Check status &amp; add comments</a>
+                </p>
+                <p class="text-body-secondary small mb-4">We also emailed you this link — bookmark it to check back anytime.</p>
+            <?php endif; ?>
             <a href="submit-ticket.php" class="btn btn-outline-primary">Submit Another Ticket</a>
         </div>
     </div>

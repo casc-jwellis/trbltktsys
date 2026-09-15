@@ -126,6 +126,62 @@ function save_ticket_assignments(int $ticketId, array $groupIds): void
     }
 }
 
+/** Whether tickets.public_token exists yet (migration 014). */
+function ticket_public_tokens_supported(): bool
+{
+    static $result = null;
+    if ($result === null) {
+        $result = column_exists('tickets', 'public_token');
+    }
+    return $result;
+}
+
+/**
+ * The scheme+host+directory this app is being served from, e.g.
+ * "https://helpdesk.example.com/trbltktsys" -- used to build absolute links
+ * for emails, which (unlike in-page links) can't rely on a relative URL.
+ */
+function base_url(): string
+{
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($_SERVER['SERVER_PORT'] ?? '') === '443';
+    $scheme = $isHttps ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $dir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+    return $scheme . '://' . $host . $dir;
+}
+
+function ticket_public_link(string $publicToken): string
+{
+    return base_url() . '/ticket-status.php?token=' . $publicToken;
+}
+
+function ticket_staff_link(int $ticketId): string
+{
+    return base_url() . '/ticket.php?id=' . $ticketId;
+}
+
+/**
+ * Email addresses of active (non-disabled) users in a ticket's assigned
+ * groups, deduplicated. Used to notify agents when a submitter replies.
+ */
+function ticket_assigned_agent_emails(int $ticketId): array
+{
+    $groupIds = ticket_assigned_group_ids($ticketId);
+    if (!$groupIds) {
+        return [];
+    }
+
+    $placeholders = implode(',', array_fill(0, count($groupIds), '?'));
+    $stmt = db()->prepare(
+        "SELECT DISTINCT u.email, u.full_name
+         FROM users u
+         JOIN user_agent_groups ug ON ug.user_id = u.id
+         WHERE ug.group_id IN ({$placeholders}) AND u.disabled = 0 AND u.email IS NOT NULL AND u.email != ''"
+    );
+    $stmt->execute($groupIds);
+    return $stmt->fetchAll();
+}
+
 /** Whether the ticket_comments table exists yet (migration 008). */
 function ticket_comments_supported(): bool
 {
@@ -156,7 +212,11 @@ function ticket_comments(int $ticketId): array
     return $stmt->fetchAll();
 }
 
-function add_ticket_comment(int $ticketId, int $userId, string $body, bool $isInternal): void
+/**
+ * $userId is null for a comment posted by the submitter (via
+ * ticket-status.php), who isn't a logged-in user.
+ */
+function add_ticket_comment(int $ticketId, ?int $userId, string $body, bool $isInternal): void
 {
     if (!ticket_comments_supported()) {
         return;
@@ -165,6 +225,27 @@ function add_ticket_comment(int $ticketId, int $userId, string $body, bool $isIn
         'INSERT INTO ticket_comments (ticket_id, user_id, body, is_internal) VALUES (?, ?, ?, ?)'
     );
     $stmt->execute([$ticketId, $userId, $body, $isInternal ? 1 : 0]);
+}
+
+/**
+ * A ticket's conversation thread as the submitter is allowed to see it --
+ * responses only, never internal notes. Filtered in SQL (not just at
+ * render time) so internal-note content is never even loaded for this path.
+ */
+function ticket_public_comments(int $ticketId): array
+{
+    if (!ticket_comments_supported()) {
+        return [];
+    }
+    $stmt = db()->prepare(
+        'SELECT tc.id, tc.body, tc.created_at, u.full_name AS author_name
+         FROM ticket_comments tc
+         LEFT JOIN users u ON u.id = tc.user_id
+         WHERE tc.ticket_id = ? AND tc.is_internal = 0
+         ORDER BY tc.created_at ASC, tc.id ASC'
+    );
+    $stmt->execute([$ticketId]);
+    return $stmt->fetchAll();
 }
 
 const ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;

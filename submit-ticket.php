@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/mail.php';
 
 $errors = [];
 $old = [
@@ -63,11 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
         $stmt->execute([$old['requester_email'], $old['requester_name'], $phone]);
 
-        $stmt = db()->prepare(
-            'INSERT INTO tickets (requester_name, requester_email, subject, description, category, priority, status, attachment_path)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-        );
-        $stmt->execute([
+        $ticketValues = [
             $old['requester_name'],
             $old['requester_email'],
             $old['subject'],
@@ -76,12 +73,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $old['priority'],
             'Open',
             $attachmentPath,
-        ]);
-        $newTicketId = db()->lastInsertId();
+        ];
+        $ticketSql = 'INSERT INTO tickets (requester_name, requester_email, subject, description, category, priority, status, attachment_path';
 
-        assign_ticket_by_category((int) $newTicketId, $old['category']);
+        // Column may not exist yet on a database that's pending migrate.php --
+        // degrade gracefully rather than fail the whole ticket submission.
+        $publicToken = null;
+        if (ticket_public_tokens_supported()) {
+            $publicToken = bin2hex(random_bytes(32));
+            $ticketSql .= ', public_token';
+            $ticketValues[] = $publicToken;
+        }
+
+        $stmt = db()->prepare($ticketSql . ') VALUES (' . implode(', ', array_fill(0, count($ticketValues), '?')) . ')');
+        $stmt->execute($ticketValues);
+        $newTicketId = (int) db()->lastInsertId();
+
+        assign_ticket_by_category($newTicketId, $old['category']);
 
         db()->commit();
+
+        if ($publicToken !== null) {
+            try {
+                send_ticket_confirmation_email([
+                    'id'              => $newTicketId,
+                    'subject'         => $old['subject'],
+                    'requester_name'  => $old['requester_name'],
+                    'requester_email' => $old['requester_email'],
+                    'public_token'    => $publicToken,
+                ]);
+            } catch (Throwable $e) {
+                // Don't let a mail failure block ticket creation -- the ticket
+                // itself is already committed. Just leave a trail for an admin.
+                error_log('Failed to send ticket confirmation email for ticket #' . $newTicketId . ': ' . $e->getMessage());
+            }
+        }
 
         header('Location: ticket-submitted.php?id=' . $newTicketId);
         exit;

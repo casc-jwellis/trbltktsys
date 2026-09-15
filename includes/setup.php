@@ -119,6 +119,11 @@ function available_migrations(): array
             'label'   => 'SMTP email settings',
             'applied' => fn (): bool => table_exists('smtp_settings'),
         ],
+        [
+            'file'    => '014_ticket_public_token.sql',
+            'label'   => 'Per-ticket public access token (submitter status/reply links)',
+            'applied' => fn (): bool => column_exists('tickets', 'public_token'),
+        ],
     ];
 }
 

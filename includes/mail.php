@@ -102,16 +102,85 @@ function configured_mailer(): PHPMailer
 }
 
 /**
+ * Builds a mailer from the stored settings and sends one plain-text email.
+ * Throws PHPMailer\PHPMailer\Exception with a human-readable reason on
+ * failure (including when SMTP isn't configured yet) -- callers decide
+ * whether that should block the surrounding action, surface a warning, or
+ * just be logged.
+ */
+function send_ticket_email(string $toEmail, string $subject, string $body): void
+{
+    $mail = configured_mailer();
+    $mail->addAddress($toEmail);
+    $mail->Subject = $subject;
+    $mail->Body = $body;
+    $mail->send();
+}
+
+/**
  * Sends a plain-text test message to $toEmail using the stored SMTP
  * settings. Throws PHPMailer\PHPMailer\Exception with a human-readable
  * reason on failure.
  */
 function send_test_email(string $toEmail): void
 {
-    $mail = configured_mailer();
-    $mail->addAddress($toEmail);
     $appName = app_name();
-    $mail->Subject = 'Test email from ' . $appName;
-    $mail->Body = "This is a test email from {$appName}, sent to confirm the SMTP settings in Admin Settings are working.";
-    $mail->send();
+    send_ticket_email(
+        $toEmail,
+        'Test email from ' . $appName,
+        "This is a test email from {$appName}, sent to confirm the SMTP settings in Admin Settings are working."
+    );
+}
+
+/** Sent once, right after a ticket is submitted. */
+function send_ticket_confirmation_email(array $ticket): void
+{
+    $link = ticket_public_link($ticket['public_token']);
+    $subject = 'Ticket #' . $ticket['id'] . ' received: ' . $ticket['subject'];
+    $body = "Hi {$ticket['requester_name']},\n\n"
+        . "We've received your ticket and will get back to you soon.\n\n"
+        . "You can check its status, see any responses, and add additional comments at any time:\n{$link}\n";
+    send_ticket_email($ticket['requester_email'], $subject, $body);
+}
+
+/**
+ * Sent to every active agent in a ticket's assigned groups when the
+ * submitter posts a new reply via ticket-status.php. Best-effort: a failure
+ * for one recipient is logged and doesn't stop the others, and the caller
+ * never sees an exception here -- this is a background notification, not
+ * something the (anonymous, unauthenticated) submitter should see fail.
+ */
+function send_ticket_reply_notification(int $ticketId, string $ticketSubject): void
+{
+    $recipients = ticket_assigned_agent_emails($ticketId);
+    if (!$recipients) {
+        return;
+    }
+
+    $link = ticket_staff_link($ticketId);
+    $subject = 'New reply on ticket #' . $ticketId . ': ' . $ticketSubject;
+    $body = "The submitter added a new reply on ticket #{$ticketId}:\n{$ticketSubject}\n\n{$link}\n";
+
+    foreach ($recipients as $recipient) {
+        try {
+            send_ticket_email($recipient['email'], $subject, $body);
+        } catch (Throwable $e) {
+            error_log("Failed to notify {$recipient['email']} about ticket #{$ticketId} reply: " . $e->getMessage());
+        }
+    }
+}
+
+/**
+ * Sent to the submitter when an agent updates a ticket (status/priority
+ * change and/or a response). Throws on failure -- unlike the other two
+ * notification functions, this one is triggered from an authenticated
+ * agent action, so the agent should be told if it didn't go out.
+ */
+function send_ticket_update_notification(array $ticket): void
+{
+    $link = ticket_public_link($ticket['public_token']);
+    $subject = 'Update on ticket #' . $ticket['id'] . ': ' . $ticket['subject'];
+    $body = "Hi {$ticket['requester_name']},\n\n"
+        . "There's an update on your ticket. View its current status and any new responses here:\n{$link}\n";
+    send_ticket_email($ticket['requester_email'], $subject, $body);
 }
