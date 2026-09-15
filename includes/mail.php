@@ -218,15 +218,20 @@ function send_ticket_reply_notification(int $ticketId, string $ticketSubject): v
 
 /**
  * Sent to the submitter when an agent updates a ticket (status/priority
- * change and/or a response). Throws on failure -- unlike the other two
- * notification functions, this one is triggered from an authenticated
- * agent action, so the agent should be told if it didn't go out.
+ * change and/or a response). $response, when non-empty, is the agent's
+ * reply text and is quoted directly in the email rather than making the
+ * submitter click through just to read it. Throws on failure -- unlike the
+ * other two notification functions, this one is triggered from an
+ * authenticated agent action, so the agent should be told if it didn't go out.
  */
-function send_ticket_update_notification(array $ticket): void
+function send_ticket_update_notification(array $ticket, string $response = ''): void
 {
     $link = ticket_public_link($ticket['public_token']);
     $subject = ticket_email_subject((int) $ticket['id'], $ticket['subject']);
-    $body = "Hi {$ticket['requester_name']},\n\n"
-        . "There's an update on your ticket. View its current status and any new responses here:\n{$link}\n";
+    $body = "Hi {$ticket['requester_name']},\n\n" . "There's an update on your ticket.\n\n";
+    if ($response !== '') {
+        $body .= "Response:\n{$response}\n\n";
+    }
+    $body .= "View its current status and full conversation here:\n{$link}\n";
     send_ticket_email($ticket['requester_email'], $subject, $body, (int) $ticket['id']);
 }

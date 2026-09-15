@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $mailError = null;
                 if (ticket_public_tokens_supported() && !empty($ticket['public_token'])) {
                     try {
-                        send_ticket_update_notification($ticket);
+                        send_ticket_update_notification($ticket, $response);
                     } catch (Throwable $e) {
                         $mailError = $e->getMessage();
                     }
