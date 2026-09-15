@@ -138,7 +138,7 @@ require __DIR__ . '/includes/header.php';
 
     <div class="card">
         <div class="card-body p-4">
-            <form method="post" enctype="multipart/form-data" novalidate>
+            <form method="post" enctype="multipart/form-data" novalidate data-loading-text="Submitting...">
                 <?= csrf_field() ?>
                 <div class="row g-3">
                     <div class="col-md-6">

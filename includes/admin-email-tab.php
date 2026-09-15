@@ -66,7 +66,7 @@ $myEmail = array_column($users, 'email', 'id')[current_user_id()] ?? '';
     <div class="card-header">Send Test Email</div>
     <div class="card-body p-4">
         <p class="text-body-secondary">Sends a short test message using the settings above, to confirm they actually work.</p>
-        <form method="post" class="row g-3 align-items-end">
+        <form method="post" class="row g-3 align-items-end" data-loading-text="Sending...">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="send_test_email">
             <div class="col-md-8">

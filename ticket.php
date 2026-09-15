@@ -209,7 +209,7 @@ require __DIR__ . '/includes/header.php';
         <?php if (!ticket_assignments_supported()): ?>
             <div class="alert alert-warning small">Ticket assignment is unavailable until an administrator visits <a href="migrate.php">migrate.php</a> to update the database.</div>
         <?php endif; ?>
-        <form method="post" id="manageTicketForm">
+        <form method="post" id="manageTicketForm" data-loading-text="Saving...">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="manage_ticket">
             <?php if ($cannedResponses): ?>

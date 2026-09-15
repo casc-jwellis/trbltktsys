@@ -99,7 +99,7 @@ require __DIR__ . '/includes/header.php';
         <div class="card">
             <div class="card-header">Add a Comment</div>
             <div class="card-body p-4">
-                <form method="post">
+                <form method="post" data-loading-text="Sending...">
                     <?= csrf_field() ?>
                     <div class="mb-3">
                         <label class="form-label" for="body">Your Message</label>
