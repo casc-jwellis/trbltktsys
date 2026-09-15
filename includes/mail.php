@@ -206,13 +206,15 @@ function send_new_ticket_notification(int $ticketId, string $ticketSubject): voi
 
 /**
  * Sent to a ticket's assigned agents when the submitter posts a new reply
- * via ticket-status.php.
+ * via ticket-status.php. $replyBody is quoted directly so agents don't have
+ * to click through just to read it.
  */
-function send_ticket_reply_notification(int $ticketId, string $ticketSubject): void
+function send_ticket_reply_notification(int $ticketId, string $ticketSubject, string $replyBody): void
 {
     $link = ticket_staff_link($ticketId);
     $subject = ticket_email_subject($ticketId, $ticketSubject);
-    $body = "The submitter added a new reply on ticket #{$ticketId}:\n{$ticketSubject}\n\n{$link}\n";
+    $body = "The submitter added a new reply on ticket #{$ticketId}:\n{$ticketSubject}\n\n"
+        . "Message:\n{$replyBody}\n\n{$link}\n";
     notify_ticket_agents($ticketId, $subject, $body);
 }
 

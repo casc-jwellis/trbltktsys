@@ -22,7 +22,7 @@ if ($ticket && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Please enter a message.';
         } else {
             add_ticket_comment((int) $ticket['id'], null, $body, false);
-            send_ticket_reply_notification((int) $ticket['id'], $ticket['subject']);
+            send_ticket_reply_notification((int) $ticket['id'], $ticket['subject'], $body);
 
             flash('success', 'Your reply has been added.');
             header('Location: ticket-status.php?token=' . urlencode($token));
