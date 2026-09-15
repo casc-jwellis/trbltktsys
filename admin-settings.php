@@ -380,6 +380,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         $activeTab = 'email';
+    } elseif ($action === 'flush_tickets') {
+        $confirmation = trim((string) ($_POST['confirmation'] ?? ''));
+
+        if ($confirmation !== 'DELETE ALL TICKETS') {
+            flash('error', 'Type "DELETE ALL TICKETS" exactly to confirm.');
+        } else {
+            try {
+                flush_tickets();
+                flash('success', 'All tickets and related data have been deleted.');
+            } catch (PDOException $e) {
+                flash('error', 'Could not delete ticket data.');
+            }
+        }
+        $activeTab = 'database';
     } elseif ($action === 'purge_database') {
         $confirmation = trim((string) ($_POST['confirmation'] ?? ''));
 

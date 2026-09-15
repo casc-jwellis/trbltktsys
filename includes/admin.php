@@ -91,6 +91,42 @@ function user_is_disabled(int $userId): bool
 }
 
 /**
+ * Deletes every ticket, its conversation thread, its group assignment, its
+ * attached screenshot, and the requester directory -- but leaves staff
+ * accounts, groups, categories, canned responses, and email settings alone.
+ * Deletes ticket_comments/ticket_assigned_groups explicitly rather than
+ * relying solely on their ON DELETE CASCADE to tickets.
+ */
+function flush_tickets(): void
+{
+    $pdo = db();
+    $pdo->beginTransaction();
+    try {
+        if (ticket_comments_supported()) {
+            $pdo->exec('DELETE FROM ticket_comments');
+        }
+        if (ticket_assignments_supported()) {
+            $pdo->exec('DELETE FROM ticket_assigned_groups');
+        }
+        $pdo->exec('DELETE FROM tickets');
+        $pdo->exec('DELETE FROM requesters');
+        $pdo->commit();
+    } catch (PDOException $e) {
+        $pdo->rollBack();
+        throw $e;
+    }
+
+    $uploadDir = __DIR__ . '/../uploads';
+    foreach (glob($uploadDir . '/*') ?: [] as $path) {
+        // glob('*') already skips dotfiles, but the check is cheap insurance
+        // against ever touching .htaccess/.gitkeep.
+        if (is_file($path) && basename($path)[0] !== '.') {
+            unlink($path);
+        }
+    }
+}
+
+/**
  * Deletes every ticket, requester, staff account, and group. Categories are
  * left in place (they're fixed config data, not user content) so ticket
  * submission still has something to offer once someone goes through initial
