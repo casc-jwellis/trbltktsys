@@ -111,6 +111,14 @@ function configured_mailer(): PHPMailer
 
     $mail->setFrom($settings['from_email'], $settings['from_name'] ?: '');
 
+    // The HTML bodies built below are long and have no natural line breaks
+    // of their own (see ticket_email_shell()) -- quoted-printable encodes
+    // with RFC-compliant soft line breaks (encodeQP(), unlike the default
+    // 8bit encoding, which sends the body completely unwrapped). Without
+    // this, a several-KB single SMTP line can make some receiving/relaying
+    // servers' content scanners run far slower than normal, or reject it.
+    $mail->Encoding = PHPMailer::ENCODING_QUOTED_PRINTABLE;
+
     return $mail;
 }
 
@@ -208,70 +216,88 @@ function ticket_email_shell(string $innerHtml, ?array $statusColors = null): str
 {
     $badgeCss = '';
     if ($statusColors !== null) {
-        $badgeCss = '.badge{background:' . $statusColors['bg'] . ';color:' . $statusColors['fg'] . ';}'
-            . '@media (prefers-color-scheme: dark){.badge{background:' . $statusColors['bgDark'] . ';color:' . $statusColors['fgDark'] . ';}}';
+        $badgeCss = '.badge{background:' . $statusColors['bg'] . ';color:' . $statusColors['fg'] . ';}' . "\n"
+            . '@media (prefers-color-scheme: dark){.badge{background:' . $statusColors['bgDark'] . ';color:' . $statusColors['fgDark'] . ';}}' . "\n";
     }
 
     $eyebrow = e(app_name());
 
-    $style = 'body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;}'
-        . '.canvas{background:#eef1f6;}'
-        . '.card{background:#ffffff;border:1px solid #dde2e9;}'
-        . '.eyebrow{color:#8891a0;}'
-        . '.heading{color:#1c2128;}'
-        . '.sub{color:#3c4450;}'
-        . '.meta-box{background:#f6f7f9;border:1px solid #e5e8ec;}'
-        . '.meta-label{color:#8891a0;}'
-        . '.meta-subject{color:#1c2128;}'
-        . '.meta-priority{color:#8891a0;}'
-        . '.callout-label{color:#8891a0;}'
-        . '.callout-text{color:#2a2f38;}'
-        . '.note-text{color:#6b7280;}'
-        . '.link-fallback{color:#98a1ad;}'
-        . '.footer-text{color:#98a1ad;}'
-        . '.footer-cell{border-top:1px solid #eceef1;}'
-        . $badgeCss
-        . '@media (prefers-color-scheme: dark){'
-        . 'body,.canvas{background:#12151a;}'
-        . '.card{background:#1a1e25;border-color:#2b3038;}'
-        . '.eyebrow{color:#8890a0;}'
-        . '.heading{color:#f0f2f4;}'
-        . '.sub{color:#c3c9d1;}'
-        . '.meta-box{background:#20242c;border-color:#2b3038;}'
-        . '.meta-label{color:#8890a0;}'
-        . '.meta-subject{color:#f0f2f4;}'
-        . '.meta-priority{color:#8890a0;}'
-        . '.callout-label{color:#8890a0;}'
-        . '.callout-text{color:#dfe3e8;}'
-        . '.note-text{color:#9aa3b0;}'
-        . '.link-fallback{color:#7d848f;}'
-        . '.footer-text{color:#7d848f;}'
-        . '.footer-cell{border-color:#2b3038;}'
-        . '}';
+    $styleLines = [
+        'body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;}',
+        '.canvas{background:#eef1f6;}',
+        '.card{background:#ffffff;border:1px solid #dde2e9;}',
+        '.eyebrow{color:#8891a0;}',
+        '.heading{color:#1c2128;}',
+        '.sub{color:#3c4450;}',
+        '.meta-box{background:#f6f7f9;border:1px solid #e5e8ec;}',
+        '.meta-label{color:#8891a0;}',
+        '.meta-subject{color:#1c2128;}',
+        '.meta-priority{color:#8891a0;}',
+        '.callout-label{color:#8891a0;}',
+        '.callout-text{color:#2a2f38;}',
+        '.note-text{color:#6b7280;}',
+        '.link-fallback{color:#98a1ad;}',
+        '.footer-text{color:#98a1ad;}',
+        '.footer-cell{border-top:1px solid #eceef1;}',
+        $badgeCss,
+        '@media (prefers-color-scheme: dark){',
+        'body,.canvas{background:#12151a;}',
+        '.card{background:#1a1e25;border-color:#2b3038;}',
+        '.eyebrow{color:#8890a0;}',
+        '.heading{color:#f0f2f4;}',
+        '.sub{color:#c3c9d1;}',
+        '.meta-box{background:#20242c;border-color:#2b3038;}',
+        '.meta-label{color:#8890a0;}',
+        '.meta-subject{color:#f0f2f4;}',
+        '.meta-priority{color:#8890a0;}',
+        '.callout-label{color:#8890a0;}',
+        '.callout-text{color:#dfe3e8;}',
+        '.note-text{color:#9aa3b0;}',
+        '.link-fallback{color:#7d848f;}',
+        '.footer-text{color:#7d848f;}',
+        '.footer-cell{border-color:#2b3038;}',
+        '}',
+    ];
+    $style = implode("\n", $styleLines);
 
-    return '<!doctype html><html><head><meta charset="utf-8">'
-        . '<meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark">'
-        . '<style>' . $style . '</style></head><body>'
-        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="canvas"><tr><td align="center" style="padding:28px 14px;">'
-        . '<table role="presentation" width="600" cellpadding="0" cellspacing="0" class="card" style="max-width:600px;width:100%;border-radius:12px;">'
-        . '<tr><td style="background:#2d4f8f;height:6px;line-height:6px;font-size:0;border-radius:12px 12px 0 0;">&nbsp;</td></tr>'
-        . '<tr><td style="padding:24px 32px 0;"><div class="eyebrow" style="font-family:Arial,sans-serif;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">' . $eyebrow . '</div></td></tr>'
-        . $innerHtml
-        . '</table></td></tr></table></body></html>';
+    $docLines = [
+        '<!doctype html>',
+        '<html>',
+        '<head>',
+        '<meta charset="utf-8">',
+        '<meta name="color-scheme" content="light dark">',
+        '<meta name="supported-color-schemes" content="light dark">',
+        '<style>',
+        $style,
+        '</style>',
+        '</head>',
+        '<body>',
+        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="canvas"><tr><td align="center" style="padding:28px 14px;">',
+        '<table role="presentation" width="600" cellpadding="0" cellspacing="0" class="card" style="max-width:600px;width:100%;border-radius:12px;">',
+        '<tr><td style="background:#2d4f8f;height:6px;line-height:6px;font-size:0;border-radius:12px 12px 0 0;">&nbsp;</td></tr>',
+        '<tr><td style="padding:24px 32px 0;"><div class="eyebrow" style="font-family:Arial,sans-serif;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">' . $eyebrow . '</div></td></tr>',
+        $innerHtml,
+        '</table>',
+        '</td></tr></table>',
+        '</body>',
+        '</html>',
+    ];
+
+    return implode("\n", $docLines);
 }
 
 /** Greeting row. $name null omits the "Hi {name}," line (used for agent emails, which aren't addressed to one person). */
 function ticket_email_intro(?string $name, string $sentence): string
 {
     $greeting = $name !== null
-        ? '<p class="heading" style="margin:0;font-size:21px;font-weight:600;">Hi ' . e($name) . ',</p>'
+        ? '<p class="heading" style="margin:0;font-size:21px;font-weight:600;">Hi ' . e($name) . ',</p>' . "\n"
         : '';
     $topPad = $name !== null ? '16' : '22';
     $subMargin = $name !== null ? '8px 0 0' : '0';
 
-    return '<tr><td style="padding:' . $topPad . 'px 32px 0;">'
+    return '<tr><td style="padding:' . $topPad . 'px 32px 0;">' . "\n"
         . $greeting
-        . '<p class="sub" style="margin:' . $subMargin . ';font-size:15px;line-height:1.5;">' . e($sentence) . '</p>'
+        . '<p class="sub" style="margin:' . $subMargin . ';font-size:15px;line-height:1.5;">' . e($sentence) . '</p>' . "\n"
         . '</td></tr>';
 }
 
@@ -282,45 +308,45 @@ function ticket_email_meta_box(int $ticketId, string $subject, string $status, a
         ? '<span class="meta-priority" style="display:inline-block;margin-left:8px;font-size:12px;font-family:Arial,sans-serif;">Priority: ' . e($priority) . '</span>'
         : '';
 
-    return '<tr><td style="padding:18px 32px 0;">'
-        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="meta-box" style="border-radius:8px;"><tr><td style="padding:16px 20px;">'
-        . '<div class="meta-label" style="font-size:12px;font-family:Arial,sans-serif;">Ticket #' . $ticketId . '</div>'
-        . '<div class="meta-subject" style="font-size:16px;font-weight:600;margin-top:3px;">' . e($subject) . '</div>'
-        . '<div style="margin-top:12px;">'
-        . '<span class="badge" style="display:inline-block;font-size:12px;font-weight:700;letter-spacing:.03em;padding:4px 11px;border-radius:999px;font-family:Arial,sans-serif;">' . e(mb_strtoupper($status)) . '</span>'
-        . $priorityHtml
-        . '</div>'
-        . '</td></tr></table>'
+    return '<tr><td style="padding:18px 32px 0;">' . "\n"
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="meta-box" style="border-radius:8px;"><tr><td style="padding:16px 20px;">' . "\n"
+        . '<div class="meta-label" style="font-size:12px;font-family:Arial,sans-serif;">Ticket #' . $ticketId . '</div>' . "\n"
+        . '<div class="meta-subject" style="font-size:16px;font-weight:600;margin-top:3px;">' . e($subject) . '</div>' . "\n"
+        . '<div style="margin-top:12px;">' . "\n"
+        . '<span class="badge" style="display:inline-block;font-size:12px;font-weight:700;letter-spacing:.03em;padding:4px 11px;border-radius:999px;font-family:Arial,sans-serif;">' . e(mb_strtoupper($status)) . '</span>' . "\n"
+        . $priorityHtml . "\n"
+        . '</div>' . "\n"
+        . '</td></tr></table>' . "\n"
         . '</td></tr>';
 }
 
 /** An accent-bordered quote block -- used for an agent's response and for a submitter's reply, quoted directly so the reader doesn't have to click through. */
 function ticket_email_callout(string $label, string $text): string
 {
-    return '<tr><td style="padding:20px 32px 0;">'
-        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>'
-        . '<td width="3" style="background:#2d4f8f;font-size:0;">&nbsp;</td>'
-        . '<td style="padding:2px 0 2px 16px;">'
-        . '<div class="callout-label" style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-family:Arial,sans-serif;">' . e($label) . '</div>'
-        . '<p class="callout-text" style="margin:6px 0 0;font-size:15px;line-height:1.55;white-space:pre-wrap;">' . e($text) . '</p>'
-        . '</td></tr></table>'
+    return '<tr><td style="padding:20px 32px 0;">' . "\n"
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' . "\n"
+        . '<td width="3" style="background:#2d4f8f;font-size:0;">&nbsp;</td>' . "\n"
+        . '<td style="padding:2px 0 2px 16px;">' . "\n"
+        . '<div class="callout-label" style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-family:Arial,sans-serif;">' . e($label) . '</div>' . "\n"
+        . '<p class="callout-text" style="margin:6px 0 0;font-size:15px;line-height:1.55;white-space:pre-wrap;">' . e($text) . '</p>' . "\n"
+        . '</td></tr></table>' . "\n"
         . '</td></tr>';
 }
 
 /** A small italic note, e.g. the "reply to reopen" hint on a Resolved/Closed update. */
 function ticket_email_note(string $text): string
 {
-    return '<tr><td style="padding:16px 32px 0;">'
-        . '<p class="note-text" style="margin:0;font-size:13px;font-style:italic;">' . e($text) . '</p>'
+    return '<tr><td style="padding:16px 32px 0;">' . "\n"
+        . '<p class="note-text" style="margin:0;font-size:13px;font-style:italic;">' . e($text) . '</p>' . "\n"
         . '</td></tr>';
 }
 
 /** The call-to-action button, plus its URL repeated as plain text underneath for clients that strip links or images. */
 function ticket_email_button(string $url, string $label): string
 {
-    return '<tr><td style="padding:24px 32px 6px;"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#2d4f8f;border-radius:6px;">'
-        . '<a href="' . e($url) . '" style="display:inline-block;padding:12px 26px;font-family:Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:6px;">' . e($label) . '</a>'
-        . '</td></tr></table></td></tr>'
+    return '<tr><td style="padding:24px 32px 6px;"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#2d4f8f;border-radius:6px;">' . "\n"
+        . '<a href="' . e($url) . '" style="display:inline-block;padding:12px 26px;font-family:Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:6px;">' . e($label) . '</a>' . "\n"
+        . '</td></tr></table></td></tr>' . "\n"
         . '<tr><td style="padding:2px 32px 24px;"><p class="link-fallback" style="margin:0;font-size:12px;word-break:break-all;font-family:Arial,sans-serif;">' . e($url) . '</p></td></tr>';
 }
 
@@ -332,9 +358,9 @@ function ticket_email_button(string $url, string $label): string
  */
 function ticket_email_footer(int $ticketId): string
 {
-    return '<tr><td class="footer-cell" style="padding:16px 32px 22px;">'
-        . '<p class="footer-text" style="margin:0;font-size:12px;font-family:Arial,sans-serif;line-height:1.5;">'
-        . 'This message is about ticket #' . $ticketId . '. This inbox is not monitored &mdash; replying to this email will not reach anyone. Use the link above instead.'
+    return '<tr><td class="footer-cell" style="padding:16px 32px 22px;">' . "\n"
+        . '<p class="footer-text" style="margin:0;font-size:12px;font-family:Arial,sans-serif;line-height:1.5;">' . "\n"
+        . 'This message is about ticket #' . $ticketId . '. This inbox is not monitored &mdash; replying to this email will not reach anyone. Use the link above instead.' . "\n"
         . '</p></td></tr>';
 }
 
@@ -406,9 +432,9 @@ function send_ticket_confirmation_email(array $ticket): void
     $sentence = "We've received your ticket and will get back to you soon.";
 
     $html = ticket_email_shell(
-        ticket_email_intro($ticket['requester_name'], $sentence)
-        . ticket_email_meta_box($ticketId, $ticket['subject'], 'Open', $colors)
-        . ticket_email_button($link, 'View ticket status')
+        ticket_email_intro($ticket['requester_name'], $sentence) . "\n"
+        . ticket_email_meta_box($ticketId, $ticket['subject'], 'Open', $colors) . "\n"
+        . ticket_email_button($link, 'View ticket status') . "\n"
         . ticket_email_footer($ticketId),
         $colors
     );
@@ -444,9 +470,9 @@ function send_new_ticket_notification(int $ticketId, string $ticketSubject, stri
     $sentence = 'A new ticket was submitted and assigned to your group.';
 
     $html = ticket_email_shell(
-        ticket_email_intro(null, $sentence)
-        . ticket_email_meta_box($ticketId, $ticketSubject, 'Open', $colors, $priority)
-        . ticket_email_button($link, 'View ticket')
+        ticket_email_intro(null, $sentence) . "\n"
+        . ticket_email_meta_box($ticketId, $ticketSubject, 'Open', $colors, $priority) . "\n"
+        . ticket_email_button($link, 'View ticket') . "\n"
         . ticket_email_footer($ticketId),
         $colors
     );
@@ -469,10 +495,10 @@ function send_ticket_reply_notification(int $ticketId, string $ticketSubject, st
     $sentence = 'The submitter added a new reply on this ticket.';
 
     $html = ticket_email_shell(
-        ticket_email_intro(null, $sentence)
-        . ticket_email_meta_box($ticketId, $ticketSubject, $status, $colors)
-        . ticket_email_callout('Message from the submitter', $replyBody)
-        . ticket_email_button($link, 'View ticket & reply')
+        ticket_email_intro(null, $sentence) . "\n"
+        . ticket_email_meta_box($ticketId, $ticketSubject, $status, $colors) . "\n"
+        . ticket_email_callout('Message from the submitter', $replyBody) . "\n"
+        . ticket_email_button($link, 'View ticket & reply') . "\n"
         . ticket_email_footer($ticketId),
         $colors
     );
@@ -504,15 +530,15 @@ function send_ticket_update_notification(array $ticket, string $response = ''): 
     $showReopenNote = in_array($status, ['Resolved', 'Closed'], true);
     $reopenNoteText = "Didn't fully fix it? Use the link below to reply and we'll reopen this ticket.";
 
-    $inner = ticket_email_intro($ticket['requester_name'], $sentence)
+    $inner = ticket_email_intro($ticket['requester_name'], $sentence) . "\n"
         . ticket_email_meta_box($ticketId, $ticket['subject'], $status, $colors);
     if ($hasResponse) {
-        $inner .= ticket_email_callout('Response from support', $response);
+        $inner .= "\n" . ticket_email_callout('Response from support', $response);
     }
     if ($showReopenNote) {
-        $inner .= ticket_email_note($reopenNoteText);
+        $inner .= "\n" . ticket_email_note($reopenNoteText);
     }
-    $inner .= ticket_email_button($link, 'View ticket & reply') . ticket_email_footer($ticketId);
+    $inner .= "\n" . ticket_email_button($link, 'View ticket & reply') . "\n" . ticket_email_footer($ticketId);
 
     $html = ticket_email_shell($inner, $colors);
 
