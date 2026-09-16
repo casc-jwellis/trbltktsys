@@ -75,6 +75,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 db()->commit();
 
+                // send_ticket_update_notification() needs the value the agent
+                // just saved, not the one $ticket was fetched with at the top
+                // of the request.
+                $ticket['status'] = $status;
+                $ticket['priority'] = $priority;
+
                 $mailError = null;
                 if (ticket_public_tokens_supported() && !empty($ticket['public_token'])) {
                     try {
