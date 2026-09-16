@@ -22,9 +22,20 @@ if ($ticket && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Please enter a message.';
         } else {
             add_ticket_comment((int) $ticket['id'], null, $body, false);
+
+            // A submitter replying on a Resolved/Closed ticket means it isn't
+            // actually settled -- reopen it. This is what the "reply to
+            // reopen" note in the update-notification email promises (see
+            // includes/mail.php); until now nothing here actually did it.
+            $reopened = in_array($ticket['status'], ['Resolved', 'Closed'], true);
+            if ($reopened) {
+                db()->prepare('UPDATE tickets SET status = ? WHERE id = ?')->execute(['Open', (int) $ticket['id']]);
+                $ticket['status'] = 'Open';
+            }
+
             send_ticket_reply_notification((int) $ticket['id'], $ticket['subject'], $ticket['status'], $body);
 
-            flash('success', 'Your reply has been added.');
+            flash('success', $reopened ? 'Your reply has been added and the ticket has been reopened.' : 'Your reply has been added.');
             header('Location: ticket-status.php?token=' . urlencode($token));
             exit;
         }
