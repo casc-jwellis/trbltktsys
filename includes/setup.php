@@ -124,6 +124,11 @@ function available_migrations(): array
             'label'   => 'Per-ticket public access token (submitter status/reply links)',
             'applied' => fn (): bool => column_exists('tickets', 'public_token'),
         ],
+        [
+            'file'    => '015_user_theme.sql',
+            'label'   => 'Per-agent theme preference',
+            'applied' => fn (): bool => column_exists('users', 'theme'),
+        ],
     ];
 }
 

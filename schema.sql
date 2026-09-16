@@ -7,6 +7,7 @@ CREATE TABLE users (
     phone         VARCHAR(30) NULL,
     is_admin      TINYINT(1) NOT NULL DEFAULT 0,
     disabled      TINYINT(1) NOT NULL DEFAULT 0,
+    theme         VARCHAR(10) NULL,
     created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

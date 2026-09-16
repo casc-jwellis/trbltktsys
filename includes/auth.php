@@ -5,6 +5,42 @@ function current_user(): ?array
     return $_SESSION['user'] ?? null;
 }
 
+/** Whether the users.theme column exists yet (migration 015). */
+function user_theme_supported(): bool
+{
+    static $result = null;
+    if ($result === null) {
+        $result = column_exists('users', 'theme');
+    }
+    return $result;
+}
+
+/** The current agent's saved theme preference ('light'/'dark'), or null if they haven't set one -- follow the OS/browser default in that case. */
+function current_user_theme(): ?string
+{
+    $user = current_user();
+    return $user['theme'] ?? null;
+}
+
+/**
+ * Saves the current agent's theme preference so it follows them to another
+ * browser/device -- the localStorage the toggle also writes to only covers
+ * this one browser, and is all an anonymous ticket submitter has, since
+ * they have no account to persist it against.
+ */
+function set_current_user_theme(string $theme): void
+{
+    if (!in_array($theme, ['light', 'dark'], true) || !user_theme_supported()) {
+        return;
+    }
+    $userId = current_user_id();
+    if ($userId === null) {
+        return;
+    }
+    db()->prepare('UPDATE users SET theme = ? WHERE id = ?')->execute([$theme, $userId]);
+    $_SESSION['user']['theme'] = $theme;
+}
+
 function current_user_id(): ?int
 {
     $user = current_user();
@@ -74,7 +110,8 @@ function require_admin(): void
 
 function attempt_login(string $username, string $password): string
 {
-    $stmt = db()->prepare('SELECT id, username, full_name, password_hash, disabled FROM users WHERE username = ?');
+    $columns = 'id, username, full_name, password_hash, disabled' . (user_theme_supported() ? ', theme' : '');
+    $stmt = db()->prepare("SELECT {$columns} FROM users WHERE username = ?");
     $stmt->execute([$username]);
     $user = $stmt->fetch();
 
@@ -91,6 +128,7 @@ function attempt_login(string $username, string $password): string
         'id'        => $user['id'],
         'username'  => $user['username'],
         'full_name' => $user['full_name'],
+        'theme'     => $user['theme'] ?? null,
     ];
 
     return 'ok';
