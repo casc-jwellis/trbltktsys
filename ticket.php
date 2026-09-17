@@ -130,13 +130,40 @@ require __DIR__ . '/includes/header.php';
 <?php endif; ?>
 
 <div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center gap-2">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         <span>Ticket #<?= (int) $ticket['id'] ?></span>
-        <select class="form-select form-select-sm w-auto" name="priority" form="manageTicketForm" aria-label="Priority">
-            <?php foreach (TICKET_PRIORITIES as $priority): ?>
-                <option value="<?= e($priority) ?>" <?= $ticket['priority'] === $priority ? 'selected' : '' ?>><?= e($priority) ?></option>
-            <?php endforeach; ?>
-        </select>
+        <div class="d-flex align-items-center flex-wrap gap-2">
+            <select class="form-select form-select-sm w-auto" name="priority" form="manageTicketForm" aria-label="Priority">
+                <?php foreach (TICKET_PRIORITIES as $priority): ?>
+                    <option value="<?= e($priority) ?>" <?= $ticket['priority'] === $priority ? 'selected' : '' ?>><?= e($priority) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <select class="form-select form-select-sm w-auto" name="status" form="manageTicketForm" aria-label="Status">
+                <?php foreach (TICKET_STATUSES as $status): ?>
+                    <option value="<?= e($status) ?>" <?= $ticket['status'] === $status ? 'selected' : '' ?>><?= e($status) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#internalNoteModal">+ Add Internal Note</button>
+            <?php if (ticket_assignments_supported()): ?>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#reassignModal">Reassign</button>
+                <span
+                    class="text-body-secondary d-inline-flex"
+                    style="cursor: help;"
+                    tabindex="0"
+                    data-bs-toggle="tooltip"
+                    data-bs-html="true"
+                    data-bs-placement="bottom"
+                    title="<?= e($assigneeTooltipHtml) ?>"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                        <circle cx="8" cy="8" r="6.5"></circle>
+                        <line x1="8" y1="7.25" x2="8" y2="11.25"></line>
+                        <circle cx="8" cy="5" r="0.75" fill="currentColor" stroke="none"></circle>
+                    </svg>
+                    <span class="visually-hidden">Assigned groups</span>
+                </span>
+            <?php endif; ?>
+        </div>
     </div>
     <div class="card-body p-4">
         <h1 class="h4"><?= e($ticket['subject']) ?></h1>
@@ -186,31 +213,7 @@ require __DIR__ . '/includes/header.php';
 </div>
 
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        Respond &amp; Manage Ticket
-        <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#internalNoteModal">+ Add Internal Note</button>
-            <?php if (ticket_assignments_supported()): ?>
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#reassignModal">Reassign</button>
-                <span
-                    class="text-body-secondary d-inline-flex"
-                    style="cursor: help;"
-                    tabindex="0"
-                    data-bs-toggle="tooltip"
-                    data-bs-html="true"
-                    data-bs-placement="bottom"
-                    title="<?= e($assigneeTooltipHtml) ?>"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                        <circle cx="8" cy="8" r="6.5"></circle>
-                        <line x1="8" y1="7.25" x2="8" y2="11.25"></line>
-                        <circle cx="8" cy="5" r="0.75" fill="currentColor" stroke="none"></circle>
-                    </svg>
-                    <span class="visually-hidden">Assigned groups</span>
-                </span>
-            <?php endif; ?>
-        </div>
-    </div>
+    <div class="card-header">Respond &amp; Manage Ticket</div>
     <div class="card-body p-4">
         <?php if (!ticket_assignments_supported()): ?>
             <div class="alert alert-warning small">Ticket assignment is unavailable until an administrator visits <a href="migrate.php">migrate.php</a> to update the database.</div>
@@ -232,14 +235,6 @@ require __DIR__ . '/includes/header.php';
             <div class="mb-3">
                 <label class="form-label" for="response">Response to Submitter</label>
                 <textarea class="form-control" id="response" name="response" rows="4" placeholder="Type a reply the submitter will see..."></textarea>
-            </div>
-            <div class="mb-3">
-                <label class="form-label" for="status">Status</label>
-                <select class="form-select" id="status" name="status">
-                    <?php foreach (TICKET_STATUSES as $status): ?>
-                        <option value="<?= e($status) ?>" <?= $ticket['status'] === $status ? 'selected' : '' ?>><?= e($status) ?></option>
-                    <?php endforeach; ?>
-                </select>
             </div>
             <div class="d-grid mt-4">
                 <button type="submit" class="btn btn-primary">Save Changes</button>
