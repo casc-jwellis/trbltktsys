@@ -110,8 +110,8 @@ $myId = current_user_id();
                             <input type="email" class="form-control" id="new_email" name="email" required maxlength="150">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label" for="new_phone">Phone <span class="text-body-secondary">(optional)</span></label>
-                            <input class="form-control" id="new_phone" name="phone" maxlength="30">
+                            <label class="form-label" for="new_phone">Phone</label>
+                            <input class="form-control" id="new_phone" name="phone" required maxlength="30">
                         </div>
                     </div>
                     <p class="text-body-secondary small mb-3">
@@ -185,8 +185,8 @@ $myId = current_user_id();
                                 <input type="email" class="form-control" id="edit_email_<?= $uid ?>" name="email" required maxlength="150" value="<?= e($user['email']) ?>">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label" for="edit_phone_<?= $uid ?>">Phone <span class="text-body-secondary">(optional)</span></label>
-                                <input class="form-control" id="edit_phone_<?= $uid ?>" name="phone" maxlength="30" value="<?= e($user['phone']) ?>">
+                                <label class="form-label" for="edit_phone_<?= $uid ?>">Phone</label>
+                                <input class="form-control" id="edit_phone_<?= $uid ?>" name="phone" required maxlength="30" value="<?= e($user['phone']) ?>">
                             </div>
                         </div>
                         <div class="mb-3">

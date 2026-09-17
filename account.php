@@ -38,7 +38,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Please enter a valid email address.';
     }
-    if (strlen($old['phone']) > 30) {
+    if ($old['phone'] === '') {
+        $errors[] = 'Please enter a phone number.';
+    } elseif (strlen($old['phone']) > 30) {
         $errors[] = 'Phone number is too long (30 characters max).';
     }
     if ($newPassword !== '' && strlen($newPassword) < 8) {
@@ -106,8 +108,8 @@ require __DIR__ . '/includes/header.php';
                         <input class="form-control" id="full_name" name="full_name" required maxlength="100" value="<?= e($old['full_name']) ?>">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label" for="phone">Phone <span class="text-body-secondary">(optional)</span></label>
-                        <input class="form-control" id="phone" name="phone" maxlength="30" value="<?= e($old['phone']) ?>">
+                        <label class="form-label" for="phone">Phone</label>
+                        <input class="form-control" id="phone" name="phone" required maxlength="30" value="<?= e($old['phone']) ?>">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="username">Username</label>

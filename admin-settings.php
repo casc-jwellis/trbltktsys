@@ -35,7 +35,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'Please enter a valid email address.';
         }
-        if (strlen($phone) > 30) {
+        if ($phone === '') {
+            $errors[] = 'Please enter a phone number.';
+        } elseif (strlen($phone) > 30) {
             $errors[] = 'Phone number is too long (30 characters max).';
         }
 
@@ -116,7 +118,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'Please enter a valid email address.';
         }
-        if (strlen($phone) > 30) {
+        if ($phone === '') {
+            $errors[] = 'Please enter a phone number.';
+        } elseif (strlen($phone) > 30) {
             $errors[] = 'Phone number is too long (30 characters max).';
         }
         if ($newPassword !== '' && strlen($newPassword) < 8) {
