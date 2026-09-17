@@ -12,5 +12,6 @@
 <script src="assets/js/tooltips.js"></script>
 <script src="assets/js/canned-response.js"></script>
 <script src="assets/js/theme-toggle.js"></script>
+<script src="assets/js/ticket-quick-update.js"></script>
 </body>
 </html>

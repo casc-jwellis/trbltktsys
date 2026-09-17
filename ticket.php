@@ -25,6 +25,52 @@ if (!is_admin() && !user_can_view_ticket($id, current_user_id())) {
     exit;
 }
 
+// Status/priority save immediately on change (assets/js/ticket-quick-update.js)
+// rather than waiting for the "Save Changes" button below -- this is its own
+// small JSON endpoint, not folded into the manage_ticket action, so it never
+// touches (or accidentally submits) whatever draft response the agent might
+// be mid-way through typing in that form.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') === 'quick_update') {
+    header('Content-Type: application/json');
+
+    if (!verify_csrf()) {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'error' => 'Your session expired. Please refresh and try again.']);
+        exit;
+    }
+
+    $status = (string) ($_POST['status'] ?? '');
+    $priority = (string) ($_POST['priority'] ?? '');
+
+    if (!in_array($status, TICKET_STATUSES, true) || !in_array($priority, TICKET_PRIORITIES, true)) {
+        http_response_code(400);
+        echo json_encode(['ok' => false, 'error' => 'Please choose valid values.']);
+        exit;
+    }
+
+    // Priority is never shown to the submitter (see includes/mail.php), so
+    // only a status change is worth emailing them about -- otherwise every
+    // priority tweak while triaging would fire an email about a field they
+    // can't even see.
+    $statusChanged = $status !== $ticket['status'];
+
+    db()->prepare('UPDATE tickets SET status = ?, priority = ? WHERE id = ?')->execute([$status, $priority, $id]);
+    $ticket['status'] = $status;
+    $ticket['priority'] = $priority;
+
+    $mailError = null;
+    if ($statusChanged && ticket_public_tokens_supported() && !empty($ticket['public_token'])) {
+        try {
+            send_ticket_update_notification($ticket, '');
+        } catch (Throwable $e) {
+            $mailError = $e->getMessage();
+        }
+    }
+
+    echo json_encode(['ok' => true, 'mailError' => $mailError]);
+    exit;
+}
+
 $stmt = db()->prepare('SELECT name, email, phone FROM requesters WHERE email = ?');
 $stmt->execute([$ticket['requester_email']]);
 $requester = $stmt->fetch();
@@ -133,16 +179,17 @@ require __DIR__ . '/includes/header.php';
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         <span>Ticket #<?= (int) $ticket['id'] ?></span>
         <div class="d-flex align-items-center flex-wrap gap-2">
-            <select class="form-select form-select-sm w-auto" name="priority" form="manageTicketForm" aria-label="Priority">
+            <select id="quickPriority" class="form-select form-select-sm w-auto" name="priority" form="manageTicketForm" aria-label="Priority">
                 <?php foreach (TICKET_PRIORITIES as $priority): ?>
                     <option value="<?= e($priority) ?>" <?= $ticket['priority'] === $priority ? 'selected' : '' ?>><?= e($priority) ?></option>
                 <?php endforeach; ?>
             </select>
-            <select class="form-select form-select-sm w-auto" name="status" form="manageTicketForm" aria-label="Status">
+            <select id="quickStatus" class="form-select form-select-sm w-auto" aria-label="Status">
                 <?php foreach (TICKET_STATUSES as $status): ?>
                     <option value="<?= e($status) ?>" <?= $ticket['status'] === $status ? 'selected' : '' ?>><?= e($status) ?></option>
                 <?php endforeach; ?>
             </select>
+            <span id="quickUpdateStatus" class="small text-body-secondary" aria-live="polite" style="min-width: 3.5em;"></span>
             <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#internalNoteModal">+ Add Internal Note</button>
             <?php if (ticket_assignments_supported()): ?>
                 <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#reassignModal">Reassign</button>
@@ -235,6 +282,14 @@ require __DIR__ . '/includes/header.php';
             <div class="mb-3">
                 <label class="form-label" for="response">Response to Submitter</label>
                 <textarea class="form-control" id="response" name="response" rows="4" placeholder="Type a reply the submitter will see..."></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="status">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <?php foreach (TICKET_STATUSES as $status): ?>
+                        <option value="<?= e($status) ?>" <?= $ticket['status'] === $status ? 'selected' : '' ?>><?= e($status) ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
             <div class="d-grid mt-4">
                 <button type="submit" class="btn btn-primary">Save Changes</button>
