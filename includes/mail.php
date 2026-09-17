@@ -15,7 +15,7 @@ const SMTP_ENCRYPTIONS = ['none', 'tls', 'ssl'];
  * Light/dark badge colors for each ticket status, used in the HTML emails
  * built below. Kept as a flat color pair (not a CSS variable) because the
  * badge's dark-mode color has to live in an actual @media block per email --
- * see ticket_email_shell().
+ * see email_shell().
  */
 const TICKET_STATUS_EMAIL_COLORS = [
     'Open'        => ['fg' => '#1d5fb0', 'bg' => '#dfeaf9', 'fgDark' => '#8fb8ee', 'bgDark' => '#1c2c42'],
@@ -112,7 +112,7 @@ function configured_mailer(): PHPMailer
     $mail->setFrom($settings['from_email'], $settings['from_name'] ?: '');
 
     // The HTML bodies built below are long and have no natural line breaks
-    // of their own (see ticket_email_shell()) -- quoted-printable encodes
+    // of their own (see email_shell()) -- quoted-printable encodes
     // with RFC-compliant soft line breaks (encodeQP(), unlike the default
     // 8bit encoding, which sends the body completely unwrapped). Without
     // this, a several-KB single SMTP line can make some receiving/relaying
@@ -176,7 +176,7 @@ function send_test_email(string $toEmail): void
 {
     $appName = app_name();
     $message = "This is a test email from {$appName}, sent to confirm the SMTP settings in Admin Settings are working.";
-    $html = ticket_email_shell(ticket_email_intro(null, $message));
+    $html = email_shell(email_intro(null, $message));
 
     send_ticket_email($toEmail, 'Test email from ' . $appName, $html, $message);
 }
@@ -196,7 +196,7 @@ function ticket_email_subject(int $ticketId, string $ticketSubject): string
 // ---------------------------------------------------------------------------
 // HTML email building blocks
 //
-// Every ticket email shares one visual shell (ticket_email_shell): a white
+// Every ticket email shares one visual shell (email_shell): a white
 // card on a light canvas, with an accent header bar and the app name as an
 // eyebrow label. Colors are set via CSS classes rather than inline styles so
 // the @media (prefers-color-scheme: dark) block can repaint them for
@@ -212,7 +212,7 @@ function ticket_email_subject(int $ticketId, string $ticketSubject): string
 // ---------------------------------------------------------------------------
 
 /** Wraps inner content (a sequence of <tr> rows) in the shared card shell. */
-function ticket_email_shell(string $innerHtml, ?array $statusColors = null): string
+function email_shell(string $innerHtml, ?array $statusColors = null): string
 {
     $badgeCss = '';
     if ($statusColors !== null) {
@@ -287,7 +287,7 @@ function ticket_email_shell(string $innerHtml, ?array $statusColors = null): str
 }
 
 /** Greeting row. $name null omits the "Hi {name}," line (used for agent emails, which aren't addressed to one person). */
-function ticket_email_intro(?string $name, string $sentence): string
+function email_intro(?string $name, string $sentence): string
 {
     $greeting = $name !== null
         ? '<p class="heading" style="margin:0;font-size:21px;font-weight:600;">Hi ' . e($name) . ',</p>' . "\n"
@@ -334,7 +334,7 @@ function ticket_email_callout(string $label, string $text): string
 }
 
 /** A small italic note, e.g. the "reply to reopen" hint on a Resolved/Closed update. */
-function ticket_email_note(string $text): string
+function email_note(string $text): string
 {
     return '<tr><td style="padding:16px 32px 0;">' . "\n"
         . '<p class="note-text" style="margin:0;font-size:13px;font-style:italic;">' . e($text) . '</p>' . "\n"
@@ -342,12 +342,25 @@ function ticket_email_note(string $text): string
 }
 
 /** The call-to-action button, plus its URL repeated as plain text underneath for clients that strip links or images. */
-function ticket_email_button(string $url, string $label): string
+function email_button(string $url, string $label): string
 {
     return '<tr><td style="padding:24px 32px 6px;"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:#2d4f8f;border-radius:6px;">' . "\n"
         . '<a href="' . e($url) . '" style="display:inline-block;padding:12px 26px;font-family:Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:6px;">' . e($label) . '</a>' . "\n"
         . '</td></tr></table></td></tr>' . "\n"
         . '<tr><td style="padding:2px 32px 24px;"><p class="link-fallback" style="margin:0;font-size:12px;word-break:break-all;font-family:Arial,sans-serif;">' . e($url) . '</p></td></tr>';
+}
+
+/** The username/temporary-password box on a new-account email. Same visual language as ticket_email_meta_box(), just for credentials instead of ticket details. */
+function account_credentials_box(string $username, string $password): string
+{
+    return '<tr><td style="padding:18px 32px 0;">' . "\n"
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="meta-box" style="border-radius:8px;"><tr><td style="padding:16px 20px;">' . "\n"
+        . '<div class="meta-label" style="font-size:12px;font-family:Arial,sans-serif;">Username</div>' . "\n"
+        . '<div class="meta-subject" style="font-size:16px;font-weight:600;font-family:\'Courier New\',monospace;margin-top:3px;">' . e($username) . '</div>' . "\n"
+        . '<div class="meta-label" style="font-size:12px;font-family:Arial,sans-serif;margin-top:14px;">Temporary password</div>' . "\n"
+        . '<div class="meta-subject" style="font-size:16px;font-weight:600;font-family:\'Courier New\',monospace;margin-top:3px;">' . e($password) . '</div>' . "\n"
+        . '</td></tr></table>' . "\n"
+        . '</td></tr>';
 }
 
 /**
@@ -431,10 +444,10 @@ function send_ticket_confirmation_email(array $ticket): void
     $colors = TICKET_STATUS_EMAIL_COLORS['Open'];
     $sentence = "We've received your ticket and will get back to you soon.";
 
-    $html = ticket_email_shell(
-        ticket_email_intro($ticket['requester_name'], $sentence) . "\n"
+    $html = email_shell(
+        email_intro($ticket['requester_name'], $sentence) . "\n"
         . ticket_email_meta_box($ticketId, $ticket['subject'], 'Open', $colors) . "\n"
-        . ticket_email_button($link, 'View ticket status') . "\n"
+        . email_button($link, 'View ticket status') . "\n"
         . ticket_email_footer($ticketId),
         $colors
     );
@@ -469,10 +482,10 @@ function send_new_ticket_notification(int $ticketId, string $ticketSubject, stri
     $colors = TICKET_STATUS_EMAIL_COLORS['Open'];
     $sentence = 'A new ticket was submitted and assigned to your group.';
 
-    $html = ticket_email_shell(
-        ticket_email_intro(null, $sentence) . "\n"
+    $html = email_shell(
+        email_intro(null, $sentence) . "\n"
         . ticket_email_meta_box($ticketId, $ticketSubject, 'Open', $colors, $priority) . "\n"
-        . ticket_email_button($link, 'View ticket') . "\n"
+        . email_button($link, 'View ticket') . "\n"
         . ticket_email_footer($ticketId),
         $colors
     );
@@ -494,11 +507,11 @@ function send_ticket_reply_notification(int $ticketId, string $ticketSubject, st
     $colors = TICKET_STATUS_EMAIL_COLORS[$status] ?? TICKET_STATUS_EMAIL_COLORS['Open'];
     $sentence = 'The submitter added a new reply on this ticket.';
 
-    $html = ticket_email_shell(
-        ticket_email_intro(null, $sentence) . "\n"
+    $html = email_shell(
+        email_intro(null, $sentence) . "\n"
         . ticket_email_meta_box($ticketId, $ticketSubject, $status, $colors) . "\n"
         . ticket_email_callout('Message from the submitter', $replyBody) . "\n"
-        . ticket_email_button($link, 'View ticket & reply') . "\n"
+        . email_button($link, 'View ticket & reply') . "\n"
         . ticket_email_footer($ticketId),
         $colors
     );
@@ -530,17 +543,17 @@ function send_ticket_update_notification(array $ticket, string $response = ''): 
     $showReopenNote = in_array($status, ['Resolved', 'Closed'], true);
     $reopenNoteText = "Didn't fully fix it? Use the link below to reply and we'll reopen this ticket.";
 
-    $inner = ticket_email_intro($ticket['requester_name'], $sentence) . "\n"
+    $inner = email_intro($ticket['requester_name'], $sentence) . "\n"
         . ticket_email_meta_box($ticketId, $ticket['subject'], $status, $colors);
     if ($hasResponse) {
         $inner .= "\n" . ticket_email_callout('Response from support', $response);
     }
     if ($showReopenNote) {
-        $inner .= "\n" . ticket_email_note($reopenNoteText);
+        $inner .= "\n" . email_note($reopenNoteText);
     }
-    $inner .= "\n" . ticket_email_button($link, 'View ticket & reply') . "\n" . ticket_email_footer($ticketId);
+    $inner .= "\n" . email_button($link, 'View ticket & reply') . "\n" . ticket_email_footer($ticketId);
 
-    $html = ticket_email_shell($inner, $colors);
+    $html = email_shell($inner, $colors);
 
     $text = ticket_email_plain(
         $ticket['requester_name'],
@@ -555,4 +568,47 @@ function send_ticket_update_notification(array $ticket, string $response = ''): 
     );
 
     send_ticket_email($ticket['requester_email'], $subject, $html, $text, $ticketId);
+}
+
+// ---------------------------------------------------------------------------
+// New-account email
+// ---------------------------------------------------------------------------
+
+/**
+ * Sent to a new agent/admin account right after an admin creates it in Admin
+ * Settings. There's no separate first-login/activation flow -- the account
+ * has to be usable immediately, so the password the admin set is included
+ * directly, and the recipient is pushed hard to change it themselves.
+ */
+function send_new_user_email(string $email, string $fullName, string $username, string $password): void
+{
+    $appName = app_name();
+    $loginUrl = base_url() . '/login.php';
+    $subject = "Your {$appName} account";
+    $sentence = "An account has been created for you on {$appName}.";
+    $warning = 'For your security, please log in and change this password as soon as possible.';
+
+    $html = email_shell(
+        email_intro($fullName, $sentence) . "\n"
+        . account_credentials_box($username, $password) . "\n"
+        . email_note($warning) . "\n"
+        . email_button($loginUrl, 'Log in')
+    );
+
+    $lines = [
+        "Hi {$fullName},",
+        '',
+        $sentence,
+        '',
+        'Username: ' . $username,
+        'Temporary password: ' . $password,
+        '',
+        $warning,
+        '',
+        'Log in here:',
+        $loginUrl,
+    ];
+    $text = implode("\n", $lines);
+
+    send_ticket_email($email, $subject, $html, $text);
 }

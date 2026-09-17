@@ -70,7 +70,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 db()->commit();
-                flash('success', 'Created user "' . $fullName . '".');
+
+                $mailError = null;
+                try {
+                    send_new_user_email($email, $fullName, $username, $password);
+                } catch (Throwable $e) {
+                    $mailError = $e->getMessage();
+                }
+
+                flash('success', 'Created user "' . $fullName . '".' . ($mailError !== null
+                    ? ' Note: the welcome email failed to send: ' . $mailError
+                    : ''));
             } catch (PDOException $e) {
                 db()->rollBack();
                 flash('error', $e->getCode() === '23000'

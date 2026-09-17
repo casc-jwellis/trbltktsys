@@ -22,6 +22,14 @@ A simple PHP trouble ticket system.
 - **Database migrations** (`migrate.php`) — applies any pending schema changes after a `git pull`,
   from the browser.
 
+## linux setup
+```bash
+sudo apt update
+sudo apt upgrade -y
+sudo apt install nginx php-fpm php-mbstring php-sqlite3 php-curl php-json php-xml mariadb-server git -y
+```
+
+
 ## Setup
 
 1. Create an empty MySQL database and a database user that can access it.
