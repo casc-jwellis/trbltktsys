@@ -103,12 +103,12 @@ function require_login(): void
         exit;
     }
 
-    // Force a fresh account straight to the password-change form -- everything
+    // Force a fresh account straight to the dedicated reset form -- everything
     // else is off limits until they've replaced the one an admin emailed them.
     $mustReset = !empty($row['must_reset_password']);
-    if ($mustReset && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'account.php') {
+    if ($mustReset && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'reset-password.php') {
         flash('error', 'For your security, please set a new password before continuing.');
-        header('Location: account.php');
+        header('Location: reset-password.php');
         exit;
     }
 }
