@@ -47,6 +47,34 @@ function current_user_id(): ?int
     return $user ? (int) $user['id'] : null;
 }
 
+/** Whether the users.must_reset_password column exists yet (migration 016). */
+function must_reset_password_supported(): bool
+{
+    static $result = null;
+    if ($result === null) {
+        $result = column_exists('users', 'must_reset_password');
+    }
+    return $result;
+}
+
+/**
+ * A random password for a newly created account -- alphanumeric only, and
+ * excluding characters that look alike (0/O, 1/l/I) since a human may need
+ * to read this out of an email rather than paste it. 16 characters from this
+ * 58-character alphabet is far more entropy than an admin-chosen password
+ * would realistically have, so no symbols are needed to make it strong.
+ */
+function generate_random_password(int $length = 16): string
+{
+    $alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+    $max = strlen($alphabet) - 1;
+    $password = '';
+    for ($i = 0; $i < $length; $i++) {
+        $password .= $alphabet[random_int(0, $max)];
+    }
+    return $password;
+}
+
 function require_login(): void
 {
     $user = current_user();
@@ -56,7 +84,8 @@ function require_login(): void
     }
 
     try {
-        $stmt = db()->prepare('SELECT disabled FROM users WHERE id = ?');
+        $columns = 'disabled' . (must_reset_password_supported() ? ', must_reset_password' : '');
+        $stmt = db()->prepare("SELECT {$columns} FROM users WHERE id = ?");
         $stmt->execute([$user['id']]);
         $row = $stmt->fetch();
     } catch (PDOException $e) {
@@ -71,6 +100,15 @@ function require_login(): void
     if (!$row || (int) $row['disabled'] === 1) {
         logout();
         header('Location: login.php');
+        exit;
+    }
+
+    // Force a fresh account straight to the password-change form -- everything
+    // else is off limits until they've replaced the one an admin emailed them.
+    $mustReset = !empty($row['must_reset_password']);
+    if ($mustReset && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'account.php') {
+        flash('error', 'For your security, please set a new password before continuing.');
+        header('Location: account.php');
         exit;
     }
 }

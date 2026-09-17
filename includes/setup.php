@@ -129,6 +129,11 @@ function available_migrations(): array
             'label'   => 'Per-agent theme preference',
             'applied' => fn (): bool => column_exists('users', 'theme'),
         ],
+        [
+            'file'    => '016_must_reset_password.sql',
+            'label'   => 'Force a password reset on next login',
+            'applied' => fn (): bool => column_exists('users', 'must_reset_password'),
+        ],
     ];
 }
 

@@ -22,8 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $fullName = trim((string) ($_POST['full_name'] ?? ''));
         $email = trim((string) ($_POST['email'] ?? ''));
         $phone = trim((string) ($_POST['phone'] ?? ''));
-        $password = (string) ($_POST['password'] ?? '');
-        $passwordConfirm = (string) ($_POST['password_confirm'] ?? '');
         $isAdmin = isset($_POST['is_admin']);
         $groupIds = valid_ids_from_post($_POST['groups'] ?? [], $allGroups);
 
@@ -40,28 +38,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (strlen($phone) > 30) {
             $errors[] = 'Phone number is too long (30 characters max).';
         }
-        if (strlen($password) < 8) {
-            $errors[] = 'Password must be at least 8 characters.';
-        }
-        if ($password !== $passwordConfirm) {
-            $errors[] = 'Passwords do not match.';
-        }
 
         if (!$errors) {
+            // Randomly generated rather than admin-chosen -- the admin never
+            // needs to know it (it's only shown back to them below if the
+            // welcome email fails to send), and the new user is required to
+            // replace it on their first login (see require_login()).
+            $password = generate_random_password();
+
             try {
                 db()->beginTransaction();
 
-                $stmt = db()->prepare(
-                    'INSERT INTO users (username, password_hash, full_name, email, phone, is_admin) VALUES (?, ?, ?, ?, ?, ?)'
-                );
-                $stmt->execute([
+                $columns = ['username', 'password_hash', 'full_name', 'email', 'phone', 'is_admin'];
+                $values = [
                     $username,
                     password_hash($password, PASSWORD_DEFAULT),
                     $fullName,
                     $email,
                     $phone !== '' ? $phone : null,
                     $isAdmin ? 1 : 0,
-                ]);
+                ];
+                if (must_reset_password_supported()) {
+                    $columns[] = 'must_reset_password';
+                    $values[] = 1;
+                }
+                $placeholders = implode(', ', array_fill(0, count($values), '?'));
+                $stmt = db()->prepare('INSERT INTO users (' . implode(', ', $columns) . ') VALUES (' . $placeholders . ')');
+                $stmt->execute($values);
                 $newUserId = (int) db()->lastInsertId();
 
                 $groupStmt = db()->prepare('INSERT INTO user_agent_groups (user_id, group_id) VALUES (?, ?)');
@@ -78,8 +81,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $mailError = $e->getMessage();
                 }
 
+                // The password only ever appears here -- as a fallback so the
+                // admin can hand it over some other way -- because the email
+                // failed to send; nobody else has any record of it otherwise.
                 flash('success', 'Created user "' . $fullName . '".' . ($mailError !== null
-                    ? ' Note: the welcome email failed to send: ' . $mailError
+                    ? ' Note: the welcome email failed to send (' . $mailError . '). Temporary password: ' . $password
                     : ''));
             } catch (PDOException $e) {
                 db()->rollBack();

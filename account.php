@@ -61,8 +61,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $phone = $old['phone'] !== '' ? $old['phone'] : null;
 
             if ($newPassword !== '') {
+                $resetClause = must_reset_password_supported() ? ', must_reset_password = 0' : '';
                 $stmt = db()->prepare(
-                    'UPDATE users SET username = ?, full_name = ?, email = ?, phone = ?, password_hash = ? WHERE id = ?'
+                    "UPDATE users SET username = ?, full_name = ?, email = ?, phone = ?, password_hash = ?{$resetClause} WHERE id = ?"
                 );
                 $stmt->execute([$old['username'], $old['full_name'], $old['email'], $phone, password_hash($newPassword, PASSWORD_DEFAULT), $userId]);
             } else {

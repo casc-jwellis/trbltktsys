@@ -114,16 +114,10 @@ $myId = current_user_id();
                             <input class="form-control" id="new_phone" name="phone" maxlength="30">
                         </div>
                     </div>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label" for="new_password">Password</label>
-                            <input type="password" class="form-control" id="new_password" name="password" required minlength="8">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label" for="new_password_confirm">Confirm Password</label>
-                            <input type="password" class="form-control" id="new_password_confirm" name="password_confirm" required minlength="8">
-                        </div>
-                    </div>
+                    <p class="text-body-secondary small mb-3">
+                        A random temporary password will be generated and emailed to them, along with a link
+                        to log in. They'll be required to set their own password on first login.
+                    </p>
                     <div class="mb-3 mt-3 form-check">
                         <input class="form-check-input" type="checkbox" name="is_admin" value="1" id="new_is_admin">
                         <label class="form-check-label" for="new_is_admin">Administrator</label>

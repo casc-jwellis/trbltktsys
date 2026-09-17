@@ -8,6 +8,7 @@ CREATE TABLE users (
     is_admin      TINYINT(1) NOT NULL DEFAULT 0,
     disabled      TINYINT(1) NOT NULL DEFAULT 0,
     theme         VARCHAR(10) NULL,
+    must_reset_password TINYINT(1) NOT NULL DEFAULT 0,
     created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
