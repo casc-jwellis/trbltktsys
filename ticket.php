@@ -103,6 +103,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('success', 'Ticket #' . $id . ' reassigned.');
             header('Location: ticket.php?id=' . $id);
             exit;
+        } elseif ($action === 'update_requester') {
+            $newName = trim((string) ($_POST['name'] ?? ''));
+            $newEmail = trim((string) ($_POST['email'] ?? ''));
+            $newPhone = trim((string) ($_POST['phone'] ?? ''));
+
+            $reqErrors = [];
+            if ($newName === '') {
+                $reqErrors[] = 'Please enter a name.';
+            }
+            if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+                $reqErrors[] = 'Please enter a valid email address.';
+            }
+            if ($newPhone === '') {
+                $reqErrors[] = 'Please enter a phone number.';
+            } elseif (strlen($newPhone) > 30) {
+                $reqErrors[] = 'Phone number is too long (30 characters max).';
+            }
+
+            if ($reqErrors) {
+                flash('error', implode(' ', $reqErrors));
+            } else {
+                $oldEmail = $ticket['requester_email'];
+
+                try {
+                    db()->beginTransaction();
+
+                    if ($newEmail !== $oldEmail) {
+                        try {
+                            // Renames the existing requesters row's primary
+                            // key -- every ticket referencing it follows
+                            // automatically via the ON UPDATE CASCADE
+                            // foreign key in schema.sql.
+                            db()->prepare('UPDATE requesters SET email = ?, name = ?, phone = ? WHERE email = ?')
+                                ->execute([$newEmail, $newName, $newPhone, $oldEmail]);
+                        } catch (PDOException $e) {
+                            if ($e->getCode() !== '23000') {
+                                throw $e;
+                            }
+                            // $newEmail already belongs to a different
+                            // requesters row -- point this ticket (and any
+                            // siblings under the typo'd address) at it
+                            // instead of renaming into a collision.
+                            db()->prepare('UPDATE tickets SET requester_email = ? WHERE requester_email = ?')
+                                ->execute([$newEmail, $oldEmail]);
+                        }
+                    }
+
+                    // Covers both remaining cases: no requesters row existed
+                    // yet (a ticket from before that table existed), and
+                    // confirming name/phone on whichever row $newEmail now
+                    // resolves to above.
+                    db()->prepare(
+                        'INSERT INTO requesters (email, name, phone) VALUES (?, ?, ?)
+                         ON DUPLICATE KEY UPDATE name = VALUES(name), phone = VALUES(phone)'
+                    )->execute([$newEmail, $newName, $newPhone]);
+
+                    // requester_name is a denormalized copy on each ticket
+                    // row, not tied to requesters by a foreign key -- fix it
+                    // on every ticket from this requester too, not just this one.
+                    db()->prepare('UPDATE tickets SET requester_name = ? WHERE requester_email = ?')
+                        ->execute([$newName, $newEmail]);
+
+                    db()->commit();
+                    flash('success', 'Contact information updated.');
+                } catch (Throwable $e) {
+                    db()->rollBack();
+                    flash('error', 'Could not update contact information.');
+                }
+            }
+
+            header('Location: ticket.php?id=' . $id);
+            exit;
         } else {
             $status = (string) ($_POST['status'] ?? '');
             $priority = (string) ($_POST['priority'] ?? '');
@@ -367,34 +439,34 @@ require __DIR__ . '/includes/header.php';
 <div class="modal fade" id="requesterInfoModal" tabindex="-1" aria-labelledby="requesterInfoModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="requesterInfoModalLabel">User Information</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <dl class="row mb-0">
-                    <dt class="col-5">Name</dt>
-                    <dd class="col-7"><?= e($requester['name'] ?? $ticket['requester_name']) ?></dd>
-
-                    <dt class="col-5">Email</dt>
-                    <dd class="col-7"><a href="mailto:<?= e($requester['email'] ?? $ticket['requester_email']) ?>"><?= e($requester['email'] ?? $ticket['requester_email']) ?></a></dd>
-
-                    <dt class="col-5">Phone</dt>
-                    <dd class="col-7">
-                        <?php if (!empty($requester['phone'])): ?>
-                            <a href="tel:<?= e($requester['phone']) ?>"><?= e($requester['phone']) ?></a>
-                        <?php else: ?>
-                            <span class="text-body-secondary">—</span>
-                        <?php endif; ?>
-                    </dd>
-
-                    <dt class="col-5">Tickets Submitted</dt>
-                    <dd class="col-7 mb-0"><?= $requesterTicketCount ?></dd>
-                </dl>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
+            <form method="post">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="update_requester">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="requesterInfoModalLabel">User Information</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-body-secondary small">Correct these if the submitter mistyped their own contact info — this updates every ticket from this requester.</p>
+                    <div class="mb-3">
+                        <label class="form-label" for="requester_name">Name</label>
+                        <input class="form-control" id="requester_name" name="name" required maxlength="100" value="<?= e($requester['name'] ?? $ticket['requester_name']) ?>">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="requester_email">Email</label>
+                        <input type="email" class="form-control" id="requester_email" name="email" required maxlength="150" value="<?= e($requester['email'] ?? $ticket['requester_email']) ?>">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="requester_phone">Phone</label>
+                        <input class="form-control" id="requester_phone" name="phone" required maxlength="30" value="<?= e($requester['phone'] ?? '') ?>">
+                    </div>
+                    <p class="text-body-secondary small mb-0">Tickets submitted: <?= $requesterTicketCount ?></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
