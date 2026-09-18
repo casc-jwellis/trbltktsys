@@ -439,7 +439,7 @@ require __DIR__ . '/includes/header.php';
 <div class="modal fade" id="requesterInfoModal" tabindex="-1" aria-labelledby="requesterInfoModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post">
+            <form method="post" id="requesterInfoForm">
                 <?= csrf_field() ?>
                 <input type="hidden" name="action" value="update_requester">
                 <div class="modal-header">
@@ -447,24 +447,26 @@ require __DIR__ . '/includes/header.php';
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-body-secondary small">Correct these if the submitter mistyped their own contact info — this updates every ticket from this requester.</p>
+                    <p class="text-body-secondary small requester-edit-hint" hidden>Correct these if the submitter mistyped their own contact info — this updates every ticket from this requester.</p>
                     <div class="mb-3">
                         <label class="form-label" for="requester_name">Name</label>
-                        <input class="form-control" id="requester_name" name="name" required maxlength="100" value="<?= e($requester['name'] ?? $ticket['requester_name']) ?>">
+                        <input class="form-control form-control-plaintext requester-field" id="requester_name" name="name" required maxlength="100" readonly value="<?= e($requester['name'] ?? $ticket['requester_name']) ?>">
                     </div>
                     <div class="mb-3">
                         <label class="form-label" for="requester_email">Email</label>
-                        <input type="email" class="form-control" id="requester_email" name="email" required maxlength="150" value="<?= e($requester['email'] ?? $ticket['requester_email']) ?>">
+                        <input type="email" class="form-control form-control-plaintext requester-field" id="requester_email" name="email" required maxlength="150" readonly value="<?= e($requester['email'] ?? $ticket['requester_email']) ?>">
                     </div>
                     <div class="mb-3">
                         <label class="form-label" for="requester_phone">Phone</label>
-                        <input class="form-control" id="requester_phone" name="phone" required maxlength="30" value="<?= e($requester['phone'] ?? '') ?>">
+                        <input class="form-control form-control-plaintext requester-field" id="requester_phone" name="phone" required maxlength="30" readonly value="<?= e($requester['phone'] ?? '') ?>">
                     </div>
                     <p class="text-body-secondary small mb-0">Tickets submitted: <?= $requesterTicketCount ?></p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <button type="button" class="btn btn-secondary requester-view-only" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary requester-view-only" id="requesterEditToggle">Edit</button>
+                    <button type="button" class="btn btn-secondary requester-edit-only" id="requesterCancelEdit" hidden>Cancel</button>
+                    <button type="submit" class="btn btn-primary requester-edit-only" hidden>Save Changes</button>
                 </div>
             </form>
         </div>

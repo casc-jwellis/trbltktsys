@@ -13,5 +13,6 @@
 <script src="assets/js/canned-response.js"></script>
 <script src="assets/js/theme-toggle.js"></script>
 <script src="assets/js/ticket-quick-update.js"></script>
+<script src="assets/js/requester-info-edit.js"></script>
 </body>
 </html>
