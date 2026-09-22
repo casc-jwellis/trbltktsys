@@ -75,6 +75,47 @@ function assignable_groups(): array
     return db()->query('SELECT id, name FROM agent_groups ORDER BY name')->fetchAll();
 }
 
+/** Whether tickets.assigned_agent_id exists yet (migration 017). */
+function ticket_assigned_agent_supported(): bool
+{
+    static $result = null;
+    if ($result === null) {
+        $result = column_exists('tickets', 'assigned_agent_id');
+    }
+    return $result;
+}
+
+/** Active (non-disabled) agents, for the "Assigned Agent" picker. */
+function active_agents(): array
+{
+    return db()->query('SELECT id, full_name FROM users WHERE disabled = 0 ORDER BY full_name')->fetchAll();
+}
+
+/** A ticket's single assigned agent (id + name), or null if unassigned or unsupported. */
+function ticket_assigned_agent(int $ticketId): ?array
+{
+    if (!ticket_assigned_agent_supported()) {
+        return null;
+    }
+    $stmt = db()->prepare(
+        'SELECT u.id, u.full_name FROM tickets t
+         JOIN users u ON u.id = t.assigned_agent_id
+         WHERE t.id = ?'
+    );
+    $stmt->execute([$ticketId]);
+    $row = $stmt->fetch();
+    return $row ?: null;
+}
+
+/** Sets or clears a ticket's single assigned agent. $agentId null unassigns. */
+function save_ticket_assigned_agent(int $ticketId, ?int $agentId): void
+{
+    if (!ticket_assigned_agent_supported()) {
+        return;
+    }
+    db()->prepare('UPDATE tickets SET assigned_agent_id = ? WHERE id = ?')->execute([$agentId, $ticketId]);
+}
+
 function ticket_assigned_group_ids(int $ticketId): array
 {
     if (!ticket_assignments_supported()) {
@@ -86,12 +127,17 @@ function ticket_assigned_group_ids(int $ticketId): array
 }
 
 /**
- * Whether a user can view a ticket: assigned to one of their groups, or
- * (for admins) always. Fails closed if the assignment table isn't there
- * yet (pending migration).
+ * Whether a user can view a ticket: they're its assigned agent, they belong
+ * to one of its assigned groups, or (for admins) always. Fails closed if the
+ * assignment table isn't there yet (pending migration).
  */
 function user_can_view_ticket(int $ticketId, int $userId): bool
 {
+    $agent = ticket_assigned_agent($ticketId);
+    if ($agent && (int) $agent['id'] === $userId) {
+        return true;
+    }
+
     $groupIds = ticket_assigned_group_ids($ticketId);
     if (!$groupIds) {
         return false;
@@ -174,11 +220,27 @@ function ticket_thread_message_id(int $ticketId): string
 }
 
 /**
- * Email addresses of active (non-disabled) users in a ticket's assigned
- * groups, deduplicated. Used to notify agents when a submitter replies.
+ * Who to notify about a ticket by email: its assigned agent alone, if one is
+ * set and still active with an email address -- otherwise every active user
+ * in its assigned groups, deduplicated. Once a ticket has an owner, group
+ * mates no longer need to hear about every reply on it.
  */
 function ticket_assigned_agent_emails(int $ticketId): array
 {
+    if (ticket_assigned_agent_supported()) {
+        $stmt = db()->prepare(
+            'SELECT u.email, u.full_name
+             FROM tickets t
+             JOIN users u ON u.id = t.assigned_agent_id
+             WHERE t.id = ? AND u.disabled = 0 AND u.email IS NOT NULL AND u.email != ""'
+        );
+        $stmt->execute([$ticketId]);
+        $agent = $stmt->fetch();
+        if ($agent) {
+            return [$agent];
+        }
+    }
+
     $groupIds = ticket_assigned_group_ids($ticketId);
     if (!$groupIds) {
         return [];

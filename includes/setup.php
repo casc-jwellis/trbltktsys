@@ -134,6 +134,11 @@ function available_migrations(): array
             'label'   => 'Force a password reset on next login',
             'applied' => fn (): bool => column_exists('users', 'must_reset_password'),
         ],
+        [
+            'file'    => '017_ticket_assigned_agent.sql',
+            'label'   => 'Single-agent ticket assignment',
+            'applied' => fn (): bool => column_exists('tickets', 'assigned_agent_id'),
+        ],
     ];
 }
 

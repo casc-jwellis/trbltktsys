@@ -100,6 +100,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($action === 'reassign_ticket') {
             $groupIds = valid_ids_from_post($_POST['assigned_groups'] ?? [], assignable_groups());
             save_ticket_assignments($id, $groupIds);
+
+            $agentId = (int) ($_POST['assigned_agent_id'] ?? 0);
+            $validAgentIds = array_column(active_agents(), 'id');
+            save_ticket_assigned_agent($id, in_array($agentId, $validAgentIds, true) ? $agentId : null);
+
             flash('success', 'Ticket #' . $id . ' reassigned.');
             header('Location: ticket.php?id=' . $id);
             exit;
@@ -222,6 +227,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $assignedGroupIds = ticket_assigned_group_ids($id);
 $groups = assignable_groups();
+$agents = active_agents();
+$assignedAgent = ticket_assigned_agent($id);
 $comments = ticket_comments($id);
 $cannedResponses = all_canned_responses();
 
@@ -230,9 +237,12 @@ $assignedGroupNames = array_values(array_intersect_key(
     array_flip($assignedGroupIds)
 ));
 $assigneeTooltipHtml = '<div class="text-start"><div class="fw-semibold border-bottom pb-1 mb-1">Assigned To</div>';
+if ($assignedAgent) {
+    $assigneeTooltipHtml .= '<div>Agent: ' . e($assignedAgent['full_name']) . '</div>';
+}
 $assigneeTooltipHtml .= $assignedGroupNames
-    ? '<div>' . e(implode(', ', $assignedGroupNames)) . '</div>'
-    : '<div>Unassigned</div>';
+    ? '<div>Groups: ' . e(implode(', ', $assignedGroupNames)) . '</div>'
+    : ($assignedAgent ? '' : '<div>Unassigned</div>');
 $assigneeTooltipHtml .= '</div>';
 
 $pageTitle = 'Ticket #' . $id;
@@ -405,6 +415,16 @@ require __DIR__ . '/includes/header.php';
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="assigned_agent_id">Assigned Agent</label>
+                        <select class="form-select" id="assigned_agent_id" name="assigned_agent_id">
+                            <option value="">Unassigned</option>
+                            <?php foreach ($agents as $agent): ?>
+                                <option value="<?= (int) $agent['id'] ?>" <?= $assignedAgent && (int) $assignedAgent['id'] === (int) $agent['id'] ? 'selected' : '' ?>><?= e($agent['full_name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text">Once an agent is assigned, ticket emails go only to them instead of the whole group.</div>
+                    </div>
                     <div class="mb-0">
                         <label class="form-label">Assigned Groups</label>
                         <?php if (!$groups): ?>

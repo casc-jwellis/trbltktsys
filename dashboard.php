@@ -6,6 +6,7 @@ $statusFilter = $_GET['status'] ?? '';
 $categoryFilter = $_GET['category'] ?? '';
 
 $assignmentsSupported = ticket_assignments_supported();
+$agentAssignmentSupported = ticket_assigned_agent_supported();
 $isAdmin = is_admin();
 
 $where = [];
@@ -28,13 +29,18 @@ if (in_array($categoryFilter, category_names(), true)) {
     $params[] = $categoryFilter;
 }
 
-// Agents only see tickets assigned to one of their groups; administrators
-// see everything.
+// Agents only see tickets assigned to one of their groups, or directly to
+// them; administrators see everything.
 if (!$isAdmin) {
     if ($assignmentsSupported) {
-        $where[] = 't.id IN (SELECT ticket_id FROM ticket_assigned_groups WHERE group_id IN (
-                        SELECT group_id FROM user_agent_groups WHERE user_id = ?))';
+        $conditions = ['t.id IN (SELECT ticket_id FROM ticket_assigned_groups WHERE group_id IN (
+                        SELECT group_id FROM user_agent_groups WHERE user_id = ?))'];
         $params[] = current_user_id();
+        if ($agentAssignmentSupported) {
+            $conditions[] = 't.assigned_agent_id = ?';
+            $params[] = current_user_id();
+        }
+        $where[] = '(' . implode(' OR ', $conditions) . ')';
     } else {
         // Can't tell what's assigned to this agent yet — show nothing rather than everything.
         $where[] = '1 = 0';
@@ -43,13 +49,15 @@ if (!$isAdmin) {
 
 if ($assignmentsSupported) {
     $sql = 'SELECT t.*,
-                GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ", ") AS assigned_group_names
-            FROM tickets t
+                GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ", ") AS assigned_group_names'
+            . ($agentAssignmentSupported ? ', a.full_name AS assigned_agent_name' : ', NULL AS assigned_agent_name')
+            . ' FROM tickets t
             LEFT JOIN ticket_assigned_groups tg ON tg.ticket_id = t.id
-            LEFT JOIN agent_groups g ON g.id = tg.group_id';
+            LEFT JOIN agent_groups g ON g.id = tg.group_id'
+            . ($agentAssignmentSupported ? ' LEFT JOIN users a ON a.id = t.assigned_agent_id' : '');
 } else {
     // Migration 007 hasn't been run yet — the assignment table doesn't exist.
-    $sql = 'SELECT t.*, NULL AS assigned_group_names FROM tickets t';
+    $sql = 'SELECT t.*, NULL AS assigned_group_names, NULL AS assigned_agent_name FROM tickets t';
 }
 if ($where) {
     $sql .= ' WHERE ' . implode(' AND ', $where);
@@ -123,7 +131,7 @@ require __DIR__ . '/includes/header.php';
                         <td><?= e($ticket['category']) ?></td>
                         <td><span class="badge <?= priority_badge_class($ticket['priority']) ?>"><?= e($ticket['priority']) ?></span></td>
                         <td><span class="badge <?= status_badge_class($ticket['status']) ?>"><?= e($ticket['status']) ?></span></td>
-                        <td><?= e($ticket['assigned_group_names'] ?: '—') ?></td>
+                        <td><?= e($ticket['assigned_agent_name'] ?: ($ticket['assigned_group_names'] ?: '—')) ?></td>
                         <td><?= e(date('M j, Y g:i A', strtotime($ticket['created_at']))) ?></td>
                     </tr>
                 <?php endforeach; ?>

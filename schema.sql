@@ -59,17 +59,24 @@ CREATE TABLE tickets (
     priority         VARCHAR(10) NOT NULL DEFAULT 'Medium',
     status           VARCHAR(20) NOT NULL DEFAULT 'Open',
     attachment_path  VARCHAR(255) NULL,
+    -- A single agent this ticket is assigned to, on top of the group
+    -- assignment below. When set, notifications go only to this agent
+    -- instead of every member of the assigned groups (see
+    -- ticket_assigned_agent_emails() in includes/functions.php).
+    assigned_agent_id INT UNSIGNED NULL,
     -- Lets a submitter view status/responses and post replies without
     -- logging in (see ticket-status.php). Set once at submission time.
     public_token     CHAR(64) NULL UNIQUE,
     created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_tickets_requester FOREIGN KEY (requester_email) REFERENCES requesters(email) ON UPDATE CASCADE,
-    CONSTRAINT fk_tickets_category FOREIGN KEY (category) REFERENCES categories(name) ON UPDATE CASCADE
+    CONSTRAINT fk_tickets_category FOREIGN KEY (category) REFERENCES categories(name) ON UPDATE CASCADE,
+    CONSTRAINT fk_tickets_assigned_agent FOREIGN KEY (assigned_agent_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX idx_tickets_status ON tickets(status);
 CREATE INDEX idx_tickets_category ON tickets(category);
+CREATE INDEX idx_tickets_assigned_agent ON tickets(assigned_agent_id);
 
 -- Who a ticket is currently assigned to. Seeded from group_categories for
 -- the ticket's category when it's submitted, and freely editable afterward
