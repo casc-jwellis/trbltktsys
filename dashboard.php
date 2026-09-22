@@ -4,14 +4,14 @@ require_login();
 
 $statusFilter = $_GET['status'] ?? '';
 $categoryFilter = $_GET['category'] ?? '';
-$viewFilter = $_GET['view'] ?? '';
+$viewFilter = $_GET['view'] ?? 'mine';
 
 $assignmentsSupported = ticket_assignments_supported();
 $agentAssignmentSupported = ticket_assigned_agent_supported();
 $isAdmin = is_admin();
-// Administrators see every ticket by default, but can switch to the same
-// "assigned to me" view agents are stuck with, via the My/All Tickets
-// dropdown below.
+// Administrators default to the same "assigned to me" view agents are
+// stuck with, but can switch to everything via the My/All Tickets dropdown
+// below.
 $restrictToSelf = !$isAdmin || $viewFilter === 'mine';
 
 $where = [];
@@ -93,6 +93,12 @@ require __DIR__ . '/includes/header.php';
         <p class="text-body-secondary mb-0"><?= count($tickets) ?> ticket<?= count($tickets) === 1 ? '' : 's' ?></p>
     </div>
     <form class="d-flex gap-2" method="get">
+        <?php if ($isAdmin): ?>
+            <select class="form-select form-select-sm" name="view" onchange="this.form.submit()">
+                <option value="mine" <?= $viewFilter === 'mine' ? 'selected' : '' ?>>My Tickets</option>
+                <option value="all" <?= $viewFilter === 'all' ? 'selected' : '' ?>>All Tickets</option>
+            </select>
+        <?php endif; ?>
         <select class="form-select form-select-sm" name="status" onchange="this.form.submit()">
             <option value="" <?= $statusFilter === '' ? 'selected' : '' ?>>Open &amp; In Progress</option>
             <option value="all" <?= $statusFilter === 'all' ? 'selected' : '' ?>>All Statuses</option>
@@ -106,12 +112,6 @@ require __DIR__ . '/includes/header.php';
                 <option value="<?= e($category) ?>" <?= $categoryFilter === $category ? 'selected' : '' ?>><?= e($category) ?></option>
             <?php endforeach; ?>
         </select>
-        <?php if ($isAdmin): ?>
-            <select class="form-select form-select-sm" name="view" onchange="this.form.submit()">
-                <option value="" <?= $viewFilter === '' ? 'selected' : '' ?>>All Tickets</option>
-                <option value="mine" <?= $viewFilter === 'mine' ? 'selected' : '' ?>>My Tickets</option>
-            </select>
-        <?php endif; ?>
     </form>
 </div>
 
