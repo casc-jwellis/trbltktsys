@@ -57,14 +57,14 @@ $myEmail = array_column($users, 'email', 'id')[current_user_id()] ?? '';
                 </div>
             </div>
             <div class="mt-3">
-                <button type="submit" class="btn btn-primary">Save Email Settings</button>
+                <button type="submit" class="btn btn-primary">Save Outbound Mail Settings</button>
             </div>
         </form>
     </div>
 </div>
 
 <div class="card mb-4">
-    <div class="card-header">Send Test Email</div>
+    <div class="card-header">Test SMTP Settings</div>
     <div class="card-body p-4">
         <p class="text-body-secondary">Sends a short test message using the settings above, to confirm they actually work.</p>
         <form method="post" class="row g-3 align-items-end" data-loading-text="Sending...">
