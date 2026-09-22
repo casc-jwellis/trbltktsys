@@ -525,7 +525,7 @@ function strip_quoted_reply(string $text): string
         if (preg_match('/^\s*>/', $line) === 1) {
             break;
         }
-        if (preg_match('/^\s*On .+ wrote:\s*$/i', $line) === 1) {
+        if (is_quote_header_start($lines, $i)) {
             break;
         }
         if (preg_match('/^-{2,}\s*Original Message\s*-{2,}/i', $line) === 1) {
@@ -538,6 +538,28 @@ function strip_quoted_reply(string $text): string
     }
 
     return trim(implode("\n", $kept));
+}
+
+/**
+ * Whether $lines[$index] begins an "On <date> ... wrote:" quote header.
+ * Checked across up to 3 physical lines rather than requiring "wrote:" on
+ * the same line as "On" -- a long sender name/address (e.g. "On Tue, Sep
+ * 22, 2026 at 3:51 PM CASC Helpdesk <trbltktsys@carlalbert.edu>\nwrote:")
+ * makes Gmail, and others, wrap the header before "wrote:".
+ */
+function is_quote_header_start(array $lines, int $index): bool
+{
+    if (preg_match('/^\s*On\s+\S/i', $lines[$index]) !== 1) {
+        return false;
+    }
+
+    for ($i = $index, $end = min($index + 3, count($lines)); $i < $end; $i++) {
+        if (preg_match('/wrote:\s*$/i', $lines[$i]) === 1) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /**
