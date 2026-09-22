@@ -36,7 +36,7 @@ final class MessageParser
         } catch (\Throwable) {
             // A shape we don't model tripped one of the helpers below; still return something
             // rather than letting a single odd part take down the whole parse.
-            return new MessagePart($partNumberPrefix, '', '', [], null, null, '', 0, []);
+            return new MessagePart($partNumberPrefix, '', '', [], null, null, '', 0, null, [], []);
         }
     }
 
@@ -148,6 +148,7 @@ final class MessageParser
 
         $subtype = self::stringAt($tokens, $index) ?? '';
         $parameters = self::parseParameterList($tokens[$index + 1] ?? null);
+        [$dispositionType, $dispositionParameters] = self::parseDisposition($tokens[$index + 2] ?? null);
 
         return new MessagePart(
             $partNumberPrefix,
@@ -158,15 +159,20 @@ final class MessageParser
             null,
             '',
             0,
+            $dispositionType,
+            $dispositionParameters,
             $children,
         );
     }
 
     /**
      * A leaf (non-multipart) part: type, subtype, parameter list, id, description, encoding and
-     * size, in that order. Anything after that - an envelope and nested BODYSTRUCTURE for a
-     * message/rfc822 part, a line count for a text part, or standard extension fields - varies by
-     * server and type and is deliberately left unmodeled.
+     * size, in that order (RFC 3501 section 7.4.2's "basic fields", indices 0-6). Depending on
+     * type, one or more type-specific fields come next before the standard extension data
+     * (body-fld-md5, body-fld-dsp, ...) begins: a single line-count field for a "text/*" part, or
+     * an envelope, nested BODYSTRUCTURE, and line count for a "message/rfc822" part. Those
+     * type-specific fields themselves are left unmodeled, but they still have to be skipped over
+     * correctly to find the disposition field that follows them.
      */
     private static function parseLeaf(array $tokens, string $partNumberPrefix): MessagePart
     {
@@ -178,7 +184,18 @@ final class MessageParser
         $encoding = self::stringAt($tokens, 5) ?? '';
         $size = self::intAt($tokens, 6) ?? 0;
 
-        [$disposition, $filename] = self::findDisposition($tokens);
+        // The basic fields end at index 6. Type-specific fields, if any, follow immediately, then
+        // the MD5 extension field (ignored here), then the disposition field.
+        if (strcasecmp($type, 'message') === 0 && strcasecmp($subtype, 'rfc822') === 0) {
+            $typeSpecificFieldCount = 3; // envelope, body structure, line count
+        } elseif (strcasecmp($type, 'text') === 0) {
+            $typeSpecificFieldCount = 1; // line count
+        } else {
+            $typeSpecificFieldCount = 0;
+        }
+
+        $dispositionIndex = 7 + $typeSpecificFieldCount + 1;
+        [$dispositionType, $dispositionParameters] = self::parseDisposition($tokens[$dispositionIndex] ?? null);
 
         return new MessagePart(
             $partNumberPrefix,
@@ -189,51 +206,31 @@ final class MessageParser
             $description,
             $encoding,
             $size,
+            $dispositionType,
+            $dispositionParameters,
             [],
-            $disposition,
-            $filename,
         );
     }
 
     /**
-     * Scans a leaf's extension fields (RFC 3501 section 7.4.2: body MD5, body disposition, body
-     * language, body location -- following the core fields parsed above) for a body disposition
-     * list, e.g. ("attachment" ("filename" "photo.png")). Where those fields actually start varies
-     * by type (a TEXT part carries an extra line-count field first; a MESSAGE/RFC822 part carries a
-     * whole nested envelope and body structure first), so rather than computing an exact offset per
-     * type this just scans every top-level token for the one shaped like a disposition list --
-     * defensive in the same spirit as the rest of this parser, and correct regardless of which
-     * fields precede it.
+     * Reads a BODYSTRUCTURE body disposition extension field (RFC 3501 section 7.4.2): either the
+     * NIL token (no disposition) or a two-element list of [disposition type, parameter list].
+     * Falls back to no disposition for anything else - a missing field, a server that skipped it
+     * entirely, or a shape this class doesn't recognize - rather than misparsing some other
+     * extension field as if it were the disposition.
      *
-     * @param array<int, mixed> $tokens
-     * @return array{0: ?string, 1: ?string}
+     * @return array{0: ?string, 1: array<string, string>}
      */
-    private static function findDisposition(array $tokens): array
+    private static function parseDisposition(mixed $token): array
     {
-        foreach ($tokens as $token) {
-            if (!is_array($token) || !isset($token[0]) || !is_string($token[0])) {
-                continue;
-            }
-
-            $kind = $token[0];
-
-            if (strcasecmp($kind, 'attachment') !== 0 && strcasecmp($kind, 'inline') !== 0) {
-                continue;
-            }
-
-            $filename = null;
-
-            foreach (self::parseParameterList($token[1] ?? null) as $key => $value) {
-                if (strcasecmp($key, 'filename') === 0) {
-                    $filename = $value;
-                    break;
-                }
-            }
-
-            return [$kind, $filename];
+        if (!is_array($token) || count($token) < 2) {
+            return [null, []];
         }
 
-        return [null, null];
+        $type = self::stringAt($token, 0);
+        $parameters = self::parseParameterList($token[1] ?? null);
+
+        return [$type, $parameters];
     }
 
     /**

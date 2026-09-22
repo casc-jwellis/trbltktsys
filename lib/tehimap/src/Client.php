@@ -11,6 +11,7 @@ use Tehimap\Imap\Connection\ConnectionInterface;
 use Tehimap\Imap\Connection\SocketConnection;
 use Tehimap\Imap\Exception\ConnectionException;
 use Tehimap\Imap\Mailbox\MailboxInfo;
+use Tehimap\Imap\Message\Attachment;
 use Tehimap\Imap\Message\Message;
 use Tehimap\Imap\Message\MessageParser;
 use Tehimap\Imap\Protocol\CommandBuilder;
@@ -326,6 +327,52 @@ final class Client
         $responses = $this->runner->send('UID FETCH ' . $this->toSequenceSet($uids) . " (UID BODY.PEEK[{$section}])");
 
         return $this->collectFetchedMessages($responses);
+    }
+
+    /**
+     * Fetches every attachment on a single message. Issues one FETCH for the message's
+     * BODYSTRUCTURE (via fetchStructure()), walks it with MessagePart::collectAttachments() to
+     * find every attachment-shaped part, then issues one further FETCH per attachment part found
+     * (via fetchBody()) to pull down that part's raw content and decode it.
+     *
+     * @return Attachment[]
+     */
+    public function fetchAttachments(int $uid): array
+    {
+        $structureMessages = $this->fetchStructure([$uid]);
+        $structureMessage = $structureMessages[0] ?? null;
+        $structure = $structureMessage?->getStructure();
+
+        if ($structure === null) {
+            return [];
+        }
+
+        $attachments = [];
+
+        foreach ($structure->collectAttachments() as $part) {
+            $bodyMessages = $this->fetchBody([$uid], $part->partNumber);
+            $bodyMessage = $bodyMessages[0] ?? null;
+            $rawContent = $bodyMessage?->getBodyPart($part->partNumber);
+
+            if ($rawContent === null) {
+                // The fetch for this one part unexpectedly came back empty; one odd part
+                // failing to fetch shouldn't take down the rest of the call.
+                continue;
+            }
+
+            $mimeType = strtolower($part->type) . '/' . strtolower($part->subtype);
+
+            $attachments[] = new Attachment(
+                $part->partNumber,
+                $part->getFilename(),
+                $mimeType,
+                $part->size,
+                $part->encoding,
+                Attachment::decode($rawContent, $part->encoding),
+            );
+        }
+
+        return $attachments;
     }
 
     /**
