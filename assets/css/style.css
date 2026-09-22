@@ -90,6 +90,15 @@ body {
     font-weight: 600;
 }
 
+/* A table filling a card with no card-header/card-body around it (the
+   ticket queue, users/groups/categories/responses lists) needs its own
+   matching corners -- .table-responsive doesn't inherit the card's
+   border-radius on its own, so the table's square background pokes past
+   the card's rounded corners without this. */
+.card > .table-responsive {
+    border-radius: inherit;
+}
+
 .auth-shell,
 .form-shell {
     max-width: 640px;
