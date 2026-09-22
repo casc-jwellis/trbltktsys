@@ -248,6 +248,7 @@ function process_inbound_message(Client $client, array $settings, int $uid): str
 
     add_ticket_comment((int) $ticket['id'], null, $body, false);
     $commentId = (int) db()->lastInsertId();
+    mark_ticket_submitter_activity((int) $ticket['id']);
 
     if (ticket_comment_attachments_supported()) {
         $stmt = db()->prepare(

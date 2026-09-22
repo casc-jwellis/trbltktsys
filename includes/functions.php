@@ -172,6 +172,56 @@ function save_ticket_assignments(int $ticketId, array $groupIds): void
     }
 }
 
+/** Whether tickets.last_submitter_activity_at/viewed_at exist yet (migration 020). */
+function ticket_activity_tracking_supported(): bool
+{
+    static $result = null;
+    if ($result === null) {
+        $result = column_exists('tickets', 'last_submitter_activity_at');
+    }
+    return $result;
+}
+
+/**
+ * Records that the submitter did something worth an agent's attention -- a
+ * reply via the web link or an inbound email (a brand new ticket is already
+ * covered by last_submitter_activity_at's own column default) -- so the
+ * ticket shows a "New" indicator until an agent opens it. See
+ * ticket_is_new(). A no-op if the tracking columns don't exist yet.
+ */
+function mark_ticket_submitter_activity(int $ticketId): void
+{
+    if (!ticket_activity_tracking_supported()) {
+        return;
+    }
+    db()->prepare('UPDATE tickets SET last_submitter_activity_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$ticketId]);
+}
+
+/**
+ * Clears a ticket's "New" indicator -- called whenever any agent opens the
+ * ticket page. Shared across all agents rather than tracked per agent: once
+ * anyone has looked, it's no longer "New" for anyone.
+ */
+function mark_ticket_viewed(int $ticketId): void
+{
+    if (!ticket_activity_tracking_supported()) {
+        return;
+    }
+    db()->prepare('UPDATE tickets SET viewed_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$ticketId]);
+}
+
+/** Whether $ticket has submitter activity since it was last viewed by an agent. */
+function ticket_is_new(array $ticket): bool
+{
+    if (empty($ticket['last_submitter_activity_at'])) {
+        return false;
+    }
+    if (empty($ticket['viewed_at'])) {
+        return true;
+    }
+    return strtotime($ticket['last_submitter_activity_at']) > strtotime($ticket['viewed_at']);
+}
+
 /** Whether tickets.public_token exists yet (migration 014). */
 function ticket_public_tokens_supported(): bool
 {

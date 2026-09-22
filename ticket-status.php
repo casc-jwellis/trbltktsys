@@ -22,6 +22,7 @@ if ($ticket && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Please enter a message.';
         } else {
             add_ticket_comment((int) $ticket['id'], null, $body, false);
+            mark_ticket_submitter_activity((int) $ticket['id']);
 
             // A submitter replying on a Resolved/Closed ticket means it isn't
             // actually settled -- reopen it. This is what the "reply to

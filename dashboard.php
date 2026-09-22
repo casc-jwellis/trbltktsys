@@ -125,7 +125,12 @@ require __DIR__ . '/includes/header.php';
                 <?php endif; ?>
                 <?php foreach ($tickets as $ticket): ?>
                     <tr class="cursor-pointer" onclick="window.location='ticket.php?id=<?= (int) $ticket['id'] ?>'" style="cursor:pointer">
-                        <td>#<?= (int) $ticket['id'] ?></td>
+                        <td>
+                            #<?= (int) $ticket['id'] ?>
+                            <?php if (ticket_is_new($ticket)): ?>
+                                <span class="badge text-bg-primary">New</span>
+                            <?php endif; ?>
+                        </td>
                         <td><?= e($ticket['subject']) ?></td>
                         <td><?= e($ticket['requester_name']) ?></td>
                         <td><?= e($ticket['category']) ?></td>

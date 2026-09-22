@@ -225,6 +225,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// Snapshot the "New" state before marking it viewed, so this page load
+// still shows the badge the agent is here to see -- it just won't be there
+// on the next load (or the dashboard) once viewed_at is updated below.
+$isNewTicket = ticket_is_new($ticket);
+mark_ticket_viewed($id);
+
 $assignedGroupIds = ticket_assigned_group_ids($id);
 $groups = assignable_groups();
 $agents = active_agents();
@@ -260,7 +266,12 @@ require __DIR__ . '/includes/header.php';
 
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <span>Ticket #<?= (int) $ticket['id'] ?></span>
+        <span>
+            Ticket #<?= (int) $ticket['id'] ?>
+            <?php if ($isNewTicket): ?>
+                <span class="badge text-bg-primary align-middle">New</span>
+            <?php endif; ?>
+        </span>
         <div class="d-flex align-items-center flex-wrap gap-2">
             <select id="quickPriority" class="form-select form-select-sm w-auto" name="priority" form="manageTicketForm" aria-label="Priority">
                 <?php foreach (TICKET_PRIORITIES as $priority): ?>

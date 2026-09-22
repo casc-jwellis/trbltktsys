@@ -69,6 +69,12 @@ CREATE TABLE tickets (
     public_token     CHAR(64) NULL UNIQUE,
     created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    -- Powers a shared "New" indicator (see ticket_is_new() in
+    -- includes/functions.php): last_submitter_activity_at is bumped on
+    -- creation and on any submitter reply (web or email); viewed_at is
+    -- bumped whenever any agent opens the ticket page.
+    last_submitter_activity_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    viewed_at        TIMESTAMP NULL DEFAULT NULL,
     CONSTRAINT fk_tickets_requester FOREIGN KEY (requester_email) REFERENCES requesters(email) ON UPDATE CASCADE,
     CONSTRAINT fk_tickets_category FOREIGN KEY (category) REFERENCES categories(name) ON UPDATE CASCADE,
     CONSTRAINT fk_tickets_assigned_agent FOREIGN KEY (assigned_agent_id) REFERENCES users(id) ON DELETE SET NULL

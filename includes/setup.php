@@ -149,6 +149,11 @@ function available_migrations(): array
             'label'   => 'Ticket comment attachments (inbound mail replies)',
             'applied' => fn (): bool => table_exists('ticket_comment_attachments'),
         ],
+        [
+            'file'    => '020_ticket_activity_tracking.sql',
+            'label'   => 'Ticket "New" indicator (submitter activity vs. last viewed)',
+            'applied' => fn (): bool => column_exists('tickets', 'last_submitter_activity_at'),
+        ],
     ];
 }
 
