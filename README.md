@@ -37,6 +37,46 @@ sudo apt upgrade -y
 sudo apt install nginx php-fpm php-mbstring php-sqlite3 php-curl php-json php-xml mariadb-server git -y
 ```
 
+nginx never reads `.htaccess` files (that's an Apache mechanism), so anything that shouldn't be
+web-reachable — logs, `config/`, `storage/`, `migrations/`, `lib/`, and PHP execution inside
+`uploads/` — needs denying explicitly in the server block instead:
+
+```nginx
+# Deny anything that isn't meant to be served directly.
+location ~ /\.(?!well-known) {
+    deny all;
+}
+
+location ~* \.(log|sql|md)$ {
+    deny all;
+}
+
+location ^~ /storage/ {
+    deny all;
+}
+
+location ^~ /config/ {
+    deny all;
+}
+
+location ^~ /migrations/ {
+    deny all;
+}
+
+location ^~ /lib/ {
+    deny all;
+}
+
+# uploads/ must stay servable (ticket screenshots/attachments), but never executed as PHP.
+location ^~ /uploads/ {
+    location ~ \.php$ {
+        deny all;
+    }
+}
+```
+
+Reload nginx after editing (`sudo nginx -t && sudo systemctl reload nginx`).
+
 
 ## Setup
 

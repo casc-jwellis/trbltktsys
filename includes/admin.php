@@ -119,7 +119,7 @@ function flush_tickets(): void
     $uploadDir = __DIR__ . '/../uploads';
     foreach (glob($uploadDir . '/*') ?: [] as $path) {
         // glob('*') already skips dotfiles, but the check is cheap insurance
-        // against ever touching .htaccess/.gitkeep.
+        // against ever touching .gitkeep.
         if (is_file($path) && basename($path)[0] !== '.') {
             unlink($path);
         }

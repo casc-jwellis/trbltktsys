@@ -1,8 +1,0 @@
-# Uploaded screenshots must never be executed as scripts.
-<FilesMatch "\.(php|phtml|php\d?|phar)$">
-    Require all denied
-</FilesMatch>
-
-<IfModule mod_php.c>
-    php_flag engine off
-</IfModule>
