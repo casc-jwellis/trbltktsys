@@ -4,10 +4,15 @@ require_login();
 
 $statusFilter = $_GET['status'] ?? '';
 $categoryFilter = $_GET['category'] ?? '';
+$viewFilter = $_GET['view'] ?? '';
 
 $assignmentsSupported = ticket_assignments_supported();
 $agentAssignmentSupported = ticket_assigned_agent_supported();
 $isAdmin = is_admin();
+// Administrators see every ticket by default, but can switch to the same
+// "assigned to me" view agents are stuck with, via the My/All Tickets
+// dropdown below.
+$restrictToSelf = !$isAdmin || $viewFilter === 'mine';
 
 $where = [];
 $params = [];
@@ -30,8 +35,8 @@ if (in_array($categoryFilter, category_names(), true)) {
 }
 
 // Agents only see tickets assigned to one of their groups, or directly to
-// them; administrators see everything.
-if (!$isAdmin) {
+// them; administrators see everything unless they've switched to "My Tickets".
+if ($restrictToSelf) {
     if ($assignmentsSupported) {
         $conditions = ['t.id IN (SELECT ticket_id FROM ticket_assigned_groups WHERE group_id IN (
                         SELECT group_id FROM user_agent_groups WHERE user_id = ?))'];
@@ -101,6 +106,12 @@ require __DIR__ . '/includes/header.php';
                 <option value="<?= e($category) ?>" <?= $categoryFilter === $category ? 'selected' : '' ?>><?= e($category) ?></option>
             <?php endforeach; ?>
         </select>
+        <?php if ($isAdmin): ?>
+            <select class="form-select form-select-sm" name="view" onchange="this.form.submit()">
+                <option value="" <?= $viewFilter === '' ? 'selected' : '' ?>>All Tickets</option>
+                <option value="mine" <?= $viewFilter === 'mine' ? 'selected' : '' ?>>My Tickets</option>
+            </select>
+        <?php endif; ?>
     </form>
 </div>
 
