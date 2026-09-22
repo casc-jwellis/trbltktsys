@@ -105,6 +105,23 @@ CREATE TABLE ticket_comments (
 
 CREATE INDEX idx_ticket_comments_ticket ON ticket_comments(ticket_id);
 
+-- Files attached to a ticket comment -- currently only populated by inbound
+-- mail (bin/imap-poll.php), which can carry any number of attachments per
+-- reply, unlike the single tickets.attachment_path screenshot captured at
+-- submission time.
+CREATE TABLE ticket_comment_attachments (
+    id                INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    comment_id        INT UNSIGNED NOT NULL,
+    path              VARCHAR(255) NOT NULL,
+    original_filename VARCHAR(255) NULL,
+    mime_type         VARCHAR(100) NULL,
+    size              INT UNSIGNED NOT NULL DEFAULT 0,
+    created_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ticket_comment_attachments_comment FOREIGN KEY (comment_id) REFERENCES ticket_comments(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX idx_ticket_comment_attachments_comment ON ticket_comment_attachments(comment_id);
+
 -- Pre-written text agents can drop into a ticket response (Admin Settings -> Responses).
 CREATE TABLE canned_responses (
     id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -129,3 +146,22 @@ CREATE TABLE smtp_settings (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO smtp_settings (id) VALUES (1);
+
+-- Inbound mail settings (Admin Settings -> Email), used by bin/imap-poll.php
+-- to pull submitter replies in over IMAP via the vendored lib/tehimap client.
+-- Single settings row, always id 1, mirroring smtp_settings.
+CREATE TABLE imap_settings (
+    id                 TINYINT UNSIGNED PRIMARY KEY,
+    enabled            TINYINT(1) NOT NULL DEFAULT 0,
+    host               VARCHAR(150) NOT NULL DEFAULT '',
+    port               SMALLINT UNSIGNED NOT NULL DEFAULT 993,
+    encryption         VARCHAR(10) NOT NULL DEFAULT 'ssl',
+    username           VARCHAR(150) NULL,
+    password           VARCHAR(255) NULL,
+    mailbox            VARCHAR(150) NOT NULL DEFAULT 'INBOX',
+    processed_mailbox  VARCHAR(150) NOT NULL DEFAULT 'Processed',
+    unmatched_mailbox  VARCHAR(150) NOT NULL DEFAULT 'Unmatched',
+    updated_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO imap_settings (id) VALUES (1);

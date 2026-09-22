@@ -43,6 +43,7 @@ if ($ticket && $_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $comments = $ticket ? ticket_public_comments((int) $ticket['id']) : [];
+$commentAttachments = $ticket ? ticket_comment_attachments_by_ticket((int) $ticket['id']) : [];
 
 $pageTitle = $ticket ? ('Ticket #' . $ticket['id']) : 'Ticket Status';
 require __DIR__ . '/includes/header.php';
@@ -95,12 +96,22 @@ require __DIR__ . '/includes/header.php';
                     <p class="text-body-secondary mb-0">No responses yet.</p>
                 <?php else: ?>
                     <?php foreach ($comments as $comment): ?>
+                        <?php $attachments = $commentAttachments[$comment['id']] ?? []; ?>
                         <div class="border-start border-primary border-3 bg-body-tertiary rounded p-3 mb-3">
                             <div class="d-flex justify-content-between align-items-start mb-1 gap-2">
                                 <span class="fw-semibold"><?= e($comment['author_name'] ?? 'You') ?></span>
                                 <small class="text-body-secondary text-nowrap"><?= e(date('M j, Y g:i A', strtotime($comment['created_at']))) ?></small>
                             </div>
                             <p class="mb-0" style="white-space: pre-wrap;"><?= e($comment['body']) ?></p>
+                            <?php if ($attachments): ?>
+                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                    <?php foreach ($attachments as $attachment): ?>
+                                        <a href="<?= e($attachment['path']) ?>" target="_blank" rel="noopener" class="badge text-bg-light text-decoration-none border">
+                                            <?= e($attachment['original_filename'] ?: basename($attachment['path'])) ?>
+                                        </a>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>

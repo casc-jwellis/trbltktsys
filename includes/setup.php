@@ -139,6 +139,16 @@ function available_migrations(): array
             'label'   => 'Single-agent ticket assignment',
             'applied' => fn (): bool => column_exists('tickets', 'assigned_agent_id'),
         ],
+        [
+            'file'    => '018_imap_settings.sql',
+            'label'   => 'Inbound IMAP mail settings',
+            'applied' => fn (): bool => table_exists('imap_settings'),
+        ],
+        [
+            'file'    => '019_ticket_comment_attachments.sql',
+            'label'   => 'Ticket comment attachments (inbound mail replies)',
+            'applied' => fn (): bool => table_exists('ticket_comment_attachments'),
+        ],
     ];
 }
 

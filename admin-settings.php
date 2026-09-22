@@ -2,6 +2,7 @@
 require __DIR__ . '/includes/bootstrap.php';
 require_once __DIR__ . '/includes/admin.php';
 require_once __DIR__ . '/includes/mail.php';
+require_once __DIR__ . '/includes/imap.php';
 require_admin();
 
 $activeTab = in_array($_GET['tab'] ?? '', ['groups', 'categories', 'responses', 'email', 'database'], true) ? $_GET['tab'] : 'users';
@@ -400,6 +401,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         $activeTab = 'email';
+    } elseif ($action === 'update_imap_settings') {
+        if (!imap_settings_supported()) {
+            flash('error', 'The database is out of date. Visit migrate.php to enable inbound mail.');
+        } else {
+            $enabled = isset($_POST['imap_enabled']);
+            $host = trim((string) ($_POST['imap_host'] ?? ''));
+            $port = (int) ($_POST['imap_port'] ?? 0);
+            $encryption = (string) ($_POST['imap_encryption'] ?? '');
+            $username = trim((string) ($_POST['imap_username'] ?? ''));
+            $newPassword = (string) ($_POST['imap_password'] ?? '');
+            $mailbox = trim((string) ($_POST['imap_mailbox'] ?? ''));
+            $processedMailbox = trim((string) ($_POST['imap_processed_mailbox'] ?? ''));
+            $unmatchedMailbox = trim((string) ($_POST['imap_unmatched_mailbox'] ?? ''));
+
+            $errors = [];
+            if ($host === '' || strlen($host) > 150) {
+                $errors[] = 'Please enter an IMAP host (up to 150 characters).';
+            }
+            if ($port < 1 || $port > 65535) {
+                $errors[] = 'Please enter a valid port number (1-65535).';
+            }
+            if (!in_array($encryption, IMAP_ENCRYPTIONS, true)) {
+                $errors[] = 'Please choose a valid encryption method.';
+            }
+            if ($username === '') {
+                $errors[] = 'Please enter a username.';
+            }
+            if ($mailbox === '') {
+                $errors[] = 'Please enter a mailbox to check (usually "INBOX").';
+            }
+
+            if (!$errors) {
+                save_imap_settings(
+                    $enabled,
+                    $host,
+                    $port,
+                    $encryption,
+                    $username,
+                    $newPassword !== '' ? $newPassword : null,
+                    $mailbox,
+                    $processedMailbox,
+                    $unmatchedMailbox
+                );
+                flash('success', 'Inbound mail settings updated.');
+            } else {
+                flash('error', implode(' ', $errors));
+            }
+        }
+        $activeTab = 'email';
+    } elseif ($action === 'test_imap_connection') {
+        try {
+            $status = test_imap_connection();
+            flash('success', 'Connected successfully. ' . ($status['MESSAGES'] ?? 0) . ' message(s), ' . ($status['UNSEEN'] ?? 0) . ' unseen.');
+        } catch (Throwable $e) {
+            flash('error', 'Could not connect: ' . $e->getMessage());
+        }
+        $activeTab = 'email';
     } elseif ($action === 'flush_tickets') {
         $confirmation = trim((string) ($_POST['confirmation'] ?? ''));
 
@@ -446,6 +504,7 @@ $groups = $allGroups;
 $categories = all_categories_with_counts();
 $cannedResponses = all_canned_responses();
 $smtpSettings = get_smtp_settings();
+$imapSettings = get_imap_settings();
 
 $pageTitle = 'Admin Settings';
 require __DIR__ . '/includes/header.php';

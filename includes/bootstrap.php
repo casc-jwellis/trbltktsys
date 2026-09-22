@@ -16,7 +16,27 @@ date_default_timezone_set($config['app']['timezone'] ?? 'UTC');
 
 // Send every page except the installer itself to install.php until the
 // database credentials, schema, and first admin account are all in place.
-if (basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'install.php') {
+// A CLI script (e.g. bin/imap-poll.php) has no browser to redirect and no
+// SCRIPT_NAME of 'install.php' to exempt it, so it fails loudly on stderr
+// instead of silently exiting 0 the way a redirect-and-exit would.
+if (PHP_SAPI === 'cli') {
+    if (!$configExists) {
+        fwrite(STDERR, "Not installed yet -- run install.php in a browser first.\n");
+        exit(1);
+    }
+
+    try {
+        $installed = is_installed();
+    } catch (PDOException $e) {
+        fwrite(STDERR, 'Could not connect to the database. Check the credentials in config/config.php: ' . $e->getMessage() . "\n");
+        exit(1);
+    }
+
+    if (!$installed) {
+        fwrite(STDERR, "Not installed yet -- run install.php in a browser first.\n");
+        exit(1);
+    }
+} elseif (basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'install.php') {
     if (!$configExists) {
         header('Location: install.php');
         exit;

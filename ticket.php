@@ -230,6 +230,7 @@ $groups = assignable_groups();
 $agents = active_agents();
 $assignedAgent = ticket_assigned_agent($id);
 $comments = ticket_comments($id);
+$commentAttachments = ticket_comment_attachments_by_ticket($id);
 $cannedResponses = all_canned_responses();
 
 $assignedGroupNames = array_values(array_intersect_key(
@@ -323,10 +324,12 @@ require __DIR__ . '/includes/header.php';
             <?php foreach ($comments as $comment): ?>
                 <?php
                 $isInternal = (int) $comment['is_internal'] === 1;
-                // A null author means the submitter posted it themselves via
-                // ticket-status.php -- they're never able to post internal notes.
+                // A null author means the submitter posted it themselves --
+                // via ticket-status.php, or via an inbound email reply (see
+                // includes/imap.php) -- either way, never an internal note.
                 $fromSubmitter = $comment['author_name'] === null;
                 $authorName = $fromSubmitter ? $ticket['requester_name'] : $comment['author_name'];
+                $attachments = $commentAttachments[$comment['id']] ?? [];
                 ?>
                 <div class="border-start <?= $isInternal ? 'border-warning' : 'border-primary' ?> border-3 <?= $isInternal ? 'bg-warning-subtle' : 'bg-body-tertiary' ?> rounded p-3 mb-3">
                     <div class="d-flex justify-content-between align-items-start mb-1 gap-2">
@@ -335,6 +338,15 @@ require __DIR__ . '/includes/header.php';
                     </div>
                     <p class="mb-1 fw-semibold"><?= e($authorName) ?></p>
                     <p class="mb-0" style="white-space: pre-wrap;"><?= e($comment['body']) ?></p>
+                    <?php if ($attachments): ?>
+                        <div class="d-flex flex-wrap gap-2 mt-2">
+                            <?php foreach ($attachments as $attachment): ?>
+                                <a href="<?= e($attachment['path']) ?>" target="_blank" rel="noopener" class="badge text-bg-light text-decoration-none border">
+                                    <?= e($attachment['original_filename'] ?: basename($attachment['path'])) ?>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>

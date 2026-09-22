@@ -211,12 +211,47 @@ function ticket_staff_link(int $ticketId): string
  * about one ticket, so mail clients (Gmail included) thread them together.
  * The first email for a ticket sets this as its own Message-ID; every later
  * one references it via In-Reply-To/References -- see send_ticket_email().
+ *
+ * When the ticket has a public_token, a short fragment derived from it (see
+ * ticket_reply_verification_fragment() -- never the token itself) is folded
+ * into the local part. A reply-capable mail client always echoes the
+ * parent's Message-ID back verbatim in its own In-Reply-To/References
+ * header, so an inbound reply carrying the right ticket ID *and* the right
+ * fragment could only have originated from a real email this app actually
+ * sent about that exact ticket -- see bin/imap-poll.php, which requires
+ * that match (plus a sender-address check) before accepting a reply as
+ * genuine. The token itself is deliberately kept out of this header so it
+ * never leaks into agent-facing copies of these emails.
  */
 function ticket_thread_message_id(int $ticketId): string
 {
     $host = parse_url(base_url(), PHP_URL_HOST) ?: 'localhost';
     $host = preg_replace('/[^A-Za-z0-9.-]/', '', $host) ?: 'localhost';
-    return '<ticket-' . $ticketId . '@' . $host . '>';
+
+    $suffix = '';
+    if (ticket_public_tokens_supported()) {
+        $stmt = db()->prepare('SELECT public_token FROM tickets WHERE id = ?');
+        $stmt->execute([$ticketId]);
+        $token = $stmt->fetchColumn();
+        if ($token) {
+            $suffix = '-' . ticket_reply_verification_fragment($token);
+        }
+    }
+
+    return '<ticket-' . $ticketId . $suffix . '@' . $host . '>';
+}
+
+/**
+ * A short, one-way fragment derived from a ticket's public_token, folded
+ * into its thread Message-ID (see ticket_thread_message_id()) to let an
+ * inbound reply be verified as genuine without ever putting the token
+ * itself in a header. Namespaced with a fixed prefix so this can't be
+ * confused with (or trivially reversed into) the actual public reply-link
+ * token.
+ */
+function ticket_reply_verification_fragment(string $publicToken): string
+{
+    return substr(hash('sha256', 'reply-verify:' . $publicToken), 0, 20);
 }
 
 /**
@@ -287,9 +322,47 @@ function ticket_comments(int $ticketId): array
     return $stmt->fetchAll();
 }
 
+/** Whether the ticket_comment_attachments table exists yet (migration 019). */
+function ticket_comment_attachments_supported(): bool
+{
+    static $result = null;
+    if ($result === null) {
+        $result = table_exists('ticket_comment_attachments');
+    }
+    return $result;
+}
+
+/**
+ * Every attachment on any comment in a ticket's thread, grouped by comment
+ * id, in one query rather than one per comment. Currently only populated by
+ * inbound mail (see includes/imap.php).
+ *
+ * @return array<int, array<int, array<string, mixed>>>
+ */
+function ticket_comment_attachments_by_ticket(int $ticketId): array
+{
+    if (!ticket_comment_attachments_supported() || !ticket_comments_supported()) {
+        return [];
+    }
+
+    $stmt = db()->prepare(
+        'SELECT a.* FROM ticket_comment_attachments a
+         JOIN ticket_comments c ON c.id = a.comment_id
+         WHERE c.ticket_id = ?
+         ORDER BY a.id ASC'
+    );
+    $stmt->execute([$ticketId]);
+
+    $byComment = [];
+    foreach ($stmt->fetchAll() as $attachment) {
+        $byComment[(int) $attachment['comment_id']][] = $attachment;
+    }
+    return $byComment;
+}
+
 /**
  * $userId is null for a comment posted by the submitter (via
- * ticket-status.php), who isn't a logged-in user.
+ * ticket-status.php or an inbound email reply), who isn't a logged-in user.
  */
 function add_ticket_comment(int $ticketId, ?int $userId, string $body, bool $isInternal): void
 {

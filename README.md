@@ -16,9 +16,17 @@ A simple PHP trouble ticket system.
 - **Admin settings** (`admin-settings.php`) — Administrator-only. Create, edit, disable, or remove
   helpdesk accounts (with an Administrator flag) and assign them to groups, assign ticket
   categories to groups (category permissions are group-based only), manage the category list
-  itself, maintain a library of canned responses (Responses tab), configure outgoing SMTP mail
-  and send a test message to confirm it works (Email tab), and (from the Database tab) purge all
+  itself, maintain a library of canned responses (Responses tab), configure outgoing SMTP mail and
+  inbound IMAP mail and test either connection (Email tab), and (from the Database tab) purge all
   data.
+- **Inbound mail** (`bin/imap-poll.php`) — a CLI script, run on whatever schedule you set up
+  separately (Task Scheduler, cron, ...), that pulls in submitter replies sent directly to the
+  configured mailbox instead of through a ticket link. It matches each reply to a ticket via the
+  thread `Message-ID` every outbound ticket email already carries (see
+  `ticket_thread_message_id()` in `includes/functions.php`), verifies it against the ticket's
+  public token before accepting it, reopens a Resolved/Closed ticket the same way a web reply
+  does, and stores any attachments alongside the new comment. See the Email tab in Admin Settings
+  to configure it.
 - **Database migrations** (`migrate.php`) — applies any pending schema changes after a `git pull`,
   from the browser.
 
@@ -52,7 +60,19 @@ Once nothing is pending it just links to the login page.
 
 ## Stack
 
-Plain PHP (PDO) + MySQL, Bootstrap 5 for styling. No build step or Composer required. The one
-exception is [PHPMailer](https://github.com/PHPMailer/PHPMailer), vendored by hand (not via
-Composer) in `lib/phpmailer/` and used to send mail via the SMTP settings configured under Admin
-Settings -> Email.
+Plain PHP (PDO) + MySQL, Bootstrap 5 for styling. No build step or Composer required. Mail is
+handled by two hand-vendored libraries (not via Composer): [PHPMailer](https://github.com/PHPMailer/PHPMailer)
+in `lib/phpmailer/` for outgoing SMTP, and a zero-dependency, raw-socket IMAP4rev1 client in
+`lib/tehimap/` for inbound mail (`bin/imap-poll.php`). Both are configured under Admin Settings ->
+Email.
+
+## Inbound mail setup
+
+1. Under Admin Settings -> Email, configure and test the IMAP connection. The **Processed** and
+   **Unmatched** folders must already exist in the mailbox — create them with your mail provider
+   first.
+2. Schedule `php bin/imap-poll.php` to run periodically (e.g. every few minutes) from the project
+   root, using whatever job scheduler your server has (Windows Task Scheduler, cron, ...). It's
+   safe to run as often as you like — it's a no-op the moment inbound mail is disabled, and only
+   processes messages newer than its last run otherwise.
+3. Only STARTTLS is unsupported — use implicit SSL/TLS (typically port 993) or plaintext.

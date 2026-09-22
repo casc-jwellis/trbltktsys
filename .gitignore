@@ -6,3 +6,5 @@ local-test.sqlite
 uploads/*
 !uploads/.gitkeep
 !uploads/.htaccess
+storage/imap-sync/*
+!storage/imap-sync/.gitkeep

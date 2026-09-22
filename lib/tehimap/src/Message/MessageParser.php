@@ -178,6 +178,8 @@ final class MessageParser
         $encoding = self::stringAt($tokens, 5) ?? '';
         $size = self::intAt($tokens, 6) ?? 0;
 
+        [$disposition, $filename] = self::findDisposition($tokens);
+
         return new MessagePart(
             $partNumberPrefix,
             $type,
@@ -188,7 +190,50 @@ final class MessageParser
             $encoding,
             $size,
             [],
+            $disposition,
+            $filename,
         );
+    }
+
+    /**
+     * Scans a leaf's extension fields (RFC 3501 section 7.4.2: body MD5, body disposition, body
+     * language, body location -- following the core fields parsed above) for a body disposition
+     * list, e.g. ("attachment" ("filename" "photo.png")). Where those fields actually start varies
+     * by type (a TEXT part carries an extra line-count field first; a MESSAGE/RFC822 part carries a
+     * whole nested envelope and body structure first), so rather than computing an exact offset per
+     * type this just scans every top-level token for the one shaped like a disposition list --
+     * defensive in the same spirit as the rest of this parser, and correct regardless of which
+     * fields precede it.
+     *
+     * @param array<int, mixed> $tokens
+     * @return array{0: ?string, 1: ?string}
+     */
+    private static function findDisposition(array $tokens): array
+    {
+        foreach ($tokens as $token) {
+            if (!is_array($token) || !isset($token[0]) || !is_string($token[0])) {
+                continue;
+            }
+
+            $kind = $token[0];
+
+            if (strcasecmp($kind, 'attachment') !== 0 && strcasecmp($kind, 'inline') !== 0) {
+                continue;
+            }
+
+            $filename = null;
+
+            foreach (self::parseParameterList($token[1] ?? null) as $key => $value) {
+                if (strcasecmp($key, 'filename') === 0) {
+                    $filename = $value;
+                    break;
+                }
+            }
+
+            return [$kind, $filename];
+        }
+
+        return [null, null];
     }
 
     /**
