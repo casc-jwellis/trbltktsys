@@ -12,7 +12,7 @@ $myEmail = array_column($users, 'email', 'id')[current_user_id()] ?? '';
 <?php else: ?>
 
 <div class="card mb-4">
-    <div class="card-header">SMTP Settings</div>
+    <div class="card-header">Outbound Mail (SMTP)</div>
     <div class="card-body p-4">
         <p class="text-body-secondary">Currently only SMTP sending is supported. This has been tested with Gmail using an app password.</p>
         <form method="post">
@@ -63,7 +63,7 @@ $myEmail = array_column($users, 'email', 'id')[current_user_id()] ?? '';
     </div>
 </div>
 
-<div class="card">
+<div class="card mb-4">
     <div class="card-header">Send Test Email</div>
     <div class="card-body p-4">
         <p class="text-body-secondary">Sends a short test message using the settings above, to confirm they actually work.</p>
