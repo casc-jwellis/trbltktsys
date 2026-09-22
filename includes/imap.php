@@ -417,8 +417,7 @@ function extract_message_content(Client $client, int $uid, ?MessagePart $structu
 
     $plainPart = null;
     $htmlPart = null;
-    $attachmentParts = [];
-    collect_message_parts($structure, $plainPart, $htmlPart, $attachmentParts);
+    find_body_text_parts($structure, $plainPart, $htmlPart);
 
     $text = '';
     if ($plainPart !== null) {
@@ -428,7 +427,7 @@ function extract_message_content(Client $client, int $uid, ?MessagePart $structu
     }
 
     $attachments = [];
-    foreach ($attachmentParts as $part) {
+    foreach ($structure->collectAttachments() as $part) {
         $attachment = fetch_and_store_attachment($client, $uid, $part);
         if ($attachment !== null) {
             $attachments[] = $attachment;
@@ -439,23 +438,23 @@ function extract_message_content(Client $client, int $uid, ?MessagePart $structu
 }
 
 /**
- * Walks a BODYSTRUCTURE tree, recursing into every multipart node (mixed,
- * alternative, related, ...) and sorting each leaf into $plainPart/$htmlPart
- * (first one found wins) or $attachmentParts.
- *
- * @param array<int, MessagePart> $attachmentParts
+ * Walks a BODYSTRUCTURE tree for the first text/plain and first text/html
+ * leaf (first one found at each wins), recursing into every multipart node
+ * (mixed, alternative, related, ...) along the way. Skips anything
+ * isAttachment() already claims, e.g. a .txt file sent as a named
+ * attachment rather than as the message body -- attachments themselves are
+ * collected separately via MessagePart::collectAttachments().
  */
-function collect_message_parts(MessagePart $part, ?MessagePart &$plainPart, ?MessagePart &$htmlPart, array &$attachmentParts): void
+function find_body_text_parts(MessagePart $part, ?MessagePart &$plainPart, ?MessagePart &$htmlPart): void
 {
     if ($part->isMultipart()) {
         foreach ($part->children as $child) {
-            collect_message_parts($child, $plainPart, $htmlPart, $attachmentParts);
+            find_body_text_parts($child, $plainPart, $htmlPart);
         }
         return;
     }
 
     if ($part->isAttachment()) {
-        $attachmentParts[] = $part;
         return;
     }
 
@@ -586,7 +585,7 @@ function fetch_and_store_attachment(Client $client, int $uid, MessagePart $part,
 
     return [
         'path' => 'uploads/' . $storedName,
-        'filename' => $part->attachmentFilename() ?? $storedName,
+        'filename' => $part->getFilename() ?? $storedName,
         'mimeType' => $mime,
         'size' => strlen($decoded),
     ];
