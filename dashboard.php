@@ -80,10 +80,7 @@ if ($where) {
 if ($assignmentsSupported) {
     $sql .= ' GROUP BY t.id';
 }
-$sql .= ' ORDER BY
-            CASE t.status WHEN "Open" THEN 0 WHEN "In Progress" THEN 1 WHEN "Resolved" THEN 2 ELSE 3 END,
-            CASE t.priority WHEN "Urgent" THEN 0 WHEN "High" THEN 1 WHEN "Medium" THEN 2 ELSE 3 END,
-            last_activity_at DESC';
+$sql .= ' ORDER BY last_activity_at DESC';
 
 $stmt = db()->prepare($sql);
 $stmt->execute($params);
