@@ -52,9 +52,18 @@ if ($restrictToSelf) {
     }
 }
 
+// The most recent of the ticket's own creation and any comment on it
+// (agent response, submitter reply via the web link, or an inbound email
+// reply) -- used below to sort by actual recent activity rather than just
+// when the ticket was first opened.
+$lastActivitySelect = ticket_comments_supported()
+    ? 'COALESCE((SELECT MAX(created_at) FROM ticket_comments WHERE ticket_id = t.id), t.created_at) AS last_activity_at'
+    : 't.created_at AS last_activity_at';
+
 if ($assignmentsSupported) {
     $sql = 'SELECT t.*,
-                GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ", ") AS assigned_group_names'
+                GROUP_CONCAT(DISTINCT g.name ORDER BY g.name SEPARATOR ", ") AS assigned_group_names,
+                ' . $lastActivitySelect
             . ($agentAssignmentSupported ? ', a.full_name AS assigned_agent_name' : ', NULL AS assigned_agent_name')
             . ' FROM tickets t
             LEFT JOIN ticket_assigned_groups tg ON tg.ticket_id = t.id
@@ -62,7 +71,8 @@ if ($assignmentsSupported) {
             . ($agentAssignmentSupported ? ' LEFT JOIN users a ON a.id = t.assigned_agent_id' : '');
 } else {
     // Migration 007 hasn't been run yet — the assignment table doesn't exist.
-    $sql = 'SELECT t.*, NULL AS assigned_group_names, NULL AS assigned_agent_name FROM tickets t';
+    $sql = 'SELECT t.*, NULL AS assigned_group_names, NULL AS assigned_agent_name, '
+            . $lastActivitySelect . ' FROM tickets t';
 }
 if ($where) {
     $sql .= ' WHERE ' . implode(' AND ', $where);
@@ -73,7 +83,7 @@ if ($assignmentsSupported) {
 $sql .= ' ORDER BY
             CASE t.status WHEN "Open" THEN 0 WHEN "In Progress" THEN 1 WHEN "Resolved" THEN 2 ELSE 3 END,
             CASE t.priority WHEN "Urgent" THEN 0 WHEN "High" THEN 1 WHEN "Medium" THEN 2 ELSE 3 END,
-            t.created_at DESC';
+            last_activity_at DESC';
 
 $stmt = db()->prepare($sql);
 $stmt->execute($params);
@@ -127,7 +137,7 @@ require __DIR__ . '/includes/header.php';
                     <th>Priority</th>
                     <th>Status</th>
                     <th>Assigned To</th>
-                    <th>Submitted</th>
+                    <th>Last Activity</th>
                 </tr>
             </thead>
             <tbody>
@@ -148,7 +158,7 @@ require __DIR__ . '/includes/header.php';
                         <td><span class="badge <?= priority_badge_class($ticket['priority']) ?>"><?= e($ticket['priority']) ?></span></td>
                         <td><span class="badge <?= status_badge_class($ticket['status']) ?>"><?= e($ticket['status']) ?></span></td>
                         <td><?= e($ticket['assigned_agent_name'] ?: ($ticket['assigned_group_names'] ?: '—')) ?></td>
-                        <td><?= e(date('M j, Y g:i A', strtotime($ticket['created_at']))) ?></td>
+                        <td><?= e(date('M j, Y g:i A', strtotime($ticket['last_activity_at']))) ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
