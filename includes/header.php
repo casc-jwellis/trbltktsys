@@ -35,6 +35,7 @@ $serverTheme = $user ? current_user_theme() : null;
         })();
     </script>
     <title><?= e($pageTitle) ?> · <?= e(app_name()) ?></title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">

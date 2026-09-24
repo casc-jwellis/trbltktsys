@@ -1,6 +1,6 @@
 :root {
-    --brand: #4f46e5;
-    --brand-hover: #4338ca;
+    --brand: #004E81;
+    --brand-hover: #003a61;
     --ink: #1e1b2e;
     --paper: #f7f7fb;
     --surface: #ffffff;
@@ -10,8 +10,8 @@
 }
 
 [data-bs-theme="dark"] {
-    --brand: #6366f1;
-    --brand-hover: #818cf8;
+    --brand: #3d94d1;
+    --brand-hover: #62aee0;
     --ink: #e8e6f0;
     --paper: #14121e;
     --surface: #1b1926;
