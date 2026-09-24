@@ -48,7 +48,7 @@ $serverTheme = $user ? current_user_theme() : null;
         <a class="navbar-brand" href="<?= $user ? 'dashboard.php' : 'index.php' ?>">
             <span class="brand-mark">TT</span> <?= e(app_name()) ?>
         </a>
-        <div class="d-flex align-items-center order-md-last gap-2">
+        <div class="d-flex align-items-center order-md-last gap-2 ms-md-3">
             <button
                 type="button"
                 id="themeToggle"
