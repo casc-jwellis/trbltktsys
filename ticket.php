@@ -342,12 +342,15 @@ require __DIR__ . '/includes/header.php';
                 $authorName = $fromSubmitter ? $ticket['requester_name'] : $comment['author_name'];
                 $attachments = $commentAttachments[$comment['id']] ?? [];
                 ?>
-                <div class="border-start <?= $isInternal ? 'border-warning' : 'border-primary' ?> border-3 <?= $isInternal ? 'bg-warning-subtle' : 'bg-body-tertiary' ?> rounded p-3 mb-3">
+                <?php
+                $threadColor = $isInternal ? 'warning' : ($fromSubmitter ? 'primary' : 'success');
+                $tagLabel = $isInternal ? 'Internal Note' : ($fromSubmitter ? 'Ticket Creator' : 'Agent');
+                ?>
+                <div class="border-start border-<?= $threadColor ?> border-3 <?= $isInternal ? 'bg-warning-subtle' : 'bg-body-tertiary' ?> rounded p-3 mb-3">
                     <div class="d-flex justify-content-between align-items-start mb-1 gap-2">
-                        <span class="badge <?= $isInternal ? 'text-bg-warning' : 'text-bg-primary' ?>"><?= $isInternal ? 'Internal Note' : ($fromSubmitter ? 'From Submitter' : 'Response to Submitter') ?></span>
+                        <span class="fw-semibold"><?= e($authorName) ?> <span class="badge text-bg-<?= $threadColor ?>"><?= $tagLabel ?></span></span>
                         <small class="text-body-secondary text-nowrap"><?= e(date('M j, Y g:i A', strtotime($comment['created_at']))) ?></small>
                     </div>
-                    <p class="mb-1 fw-semibold"><?= e($authorName) ?></p>
                     <p class="mb-0" style="white-space: pre-wrap;"><?= e($comment['body']) ?></p>
                     <?php if ($attachments): ?>
                         <div class="d-flex flex-wrap gap-2 mt-2">
