@@ -64,6 +64,9 @@ CREATE TABLE tickets (
     -- instead of every member of the assigned groups (see
     -- ticket_assigned_agent_emails() in includes/functions.php).
     assigned_agent_id INT UNSIGNED NULL,
+    -- The agent who opened this ticket on the requester's behalf
+    -- (create-ticket.php); NULL when the requester submitted it themselves.
+    created_by_user_id INT UNSIGNED NULL,
     -- Lets a submitter view status/responses and post replies without
     -- logging in (see ticket-status.php). Set once at submission time.
     public_token     CHAR(64) NULL UNIQUE,
@@ -77,7 +80,8 @@ CREATE TABLE tickets (
     viewed_at        TIMESTAMP NULL DEFAULT NULL,
     CONSTRAINT fk_tickets_requester FOREIGN KEY (requester_email) REFERENCES requesters(email) ON UPDATE CASCADE,
     CONSTRAINT fk_tickets_category FOREIGN KEY (category) REFERENCES categories(name) ON UPDATE CASCADE,
-    CONSTRAINT fk_tickets_assigned_agent FOREIGN KEY (assigned_agent_id) REFERENCES users(id) ON DELETE SET NULL
+    CONSTRAINT fk_tickets_assigned_agent FOREIGN KEY (assigned_agent_id) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_tickets_created_by FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE INDEX idx_tickets_status ON tickets(status);

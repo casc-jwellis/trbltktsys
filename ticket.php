@@ -309,9 +309,13 @@ require __DIR__ . '/includes/header.php';
     <div class="card-body p-4">
         <h1 class="h4"><?= e($ticket['subject']) ?></h1>
         <p class="text-body-secondary mb-4 d-flex align-items-center flex-wrap gap-2">
-            <span>Submitted by <?= e($ticket['requester_name']) ?></span>
+            <?php $createdByName = ticket_created_by_name($ticket); ?>
+            <span><?= $createdByName !== null ? 'Requested by' : 'Submitted by' ?> <?= e($ticket['requester_name']) ?></span>
             <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-decoration-none text-body-secondary" data-bs-toggle="modal" data-bs-target="#requesterInfoModal">(User Information)</button>
             <span>on <?= e(date('M j, Y g:i A', strtotime($ticket['created_at']))) ?></span>
+            <?php if ($createdByName !== null): ?>
+                <span class="badge text-bg-success">Created by agent: <?= e($createdByName) ?></span>
+            <?php endif; ?>
         </p>
         <p style="white-space: pre-wrap;"><?= e($ticket['description']) ?></p>
         <?php if (!empty($ticket['attachment_path'])): ?>

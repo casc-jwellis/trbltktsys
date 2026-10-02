@@ -222,6 +222,32 @@ function ticket_is_new(array $ticket): bool
     return strtotime($ticket['last_submitter_activity_at']) > strtotime($ticket['viewed_at']);
 }
 
+/** Whether tickets.created_by_user_id exists yet (migration 021). */
+function ticket_created_by_supported(): bool
+{
+    static $result = null;
+    if ($result === null) {
+        $result = column_exists('tickets', 'created_by_user_id');
+    }
+    return $result;
+}
+
+/**
+ * The name of the agent who opened $ticket on the requester's behalf, or
+ * null if the requester submitted it themselves (or the agent's account is
+ * gone, or migration 021 hasn't run yet).
+ */
+function ticket_created_by_name(array $ticket): ?string
+{
+    if (empty($ticket['created_by_user_id'])) {
+        return null;
+    }
+    $stmt = db()->prepare('SELECT full_name FROM users WHERE id = ?');
+    $stmt->execute([$ticket['created_by_user_id']]);
+    $name = $stmt->fetchColumn();
+    return $name === false ? null : (string) $name;
+}
+
 /** Whether tickets.public_token exists yet (migration 014). */
 function ticket_public_tokens_supported(): bool
 {

@@ -1,6 +1,35 @@
 <?php
 require __DIR__ . '/includes/bootstrap.php';
 require_login();
+require_once __DIR__ . '/includes/create-ticket.php';
+
+// The "+ New Ticket" modal posts back here. On success, go to the new ticket;
+// on a validation error, fall through and redisplay the queue with the modal
+// reopened (data-show-on-load) holding what the agent typed.
+$createForm = create_ticket_defaults();
+$createErrors = [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') === 'create_ticket') {
+    $createForm = create_ticket_form_from_post($_POST);
+    if (!verify_csrf()) {
+        $createErrors[] = 'Your session expired. Please try again.';
+    } else {
+        $created = create_ticket_submit($createForm, $_FILES);
+        $createErrors = $created['errors'];
+        if (!$createErrors) {
+            $newTicketId = $created['ticket_id'];
+            flash('success', 'Ticket #' . $newTicketId . ' created.');
+            // The agent can only open tickets assigned to them or their groups
+            // (admins can open any) -- if they assigned this one elsewhere, the
+            // ticket page would turn them away, so keep them on the queue.
+            if (is_admin() || user_can_view_ticket($newTicketId, current_user_id())) {
+                header('Location: ticket.php?id=' . $newTicketId);
+            } else {
+                header('Location: dashboard.php');
+            }
+            exit;
+        }
+    }
+}
 
 $statusFilter = $_GET['status'] ?? '';
 $categoryFilter = $_GET['category'] ?? '';
@@ -141,6 +170,7 @@ require __DIR__ . '/includes/header.php';
                 <option value="<?= e($category) ?>" <?= $categoryFilter === $category ? 'selected' : '' ?>><?= e($category) ?></option>
             <?php endforeach; ?>
         </select>
+        <button type="button" class="btn btn-primary btn-sm text-nowrap" data-bs-toggle="modal" data-bs-target="#createTicketModal">+ New Ticket</button>
     </form>
 </div>
 
@@ -184,5 +214,7 @@ require __DIR__ . '/includes/header.php';
         </table>
     </div>
 </div>
+
+<?php require __DIR__ . '/includes/create-ticket-modal.php'; ?>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>

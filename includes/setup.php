@@ -154,6 +154,11 @@ function available_migrations(): array
             'label'   => 'Ticket "New" indicator (submitter activity vs. last viewed)',
             'applied' => fn (): bool => column_exists('tickets', 'last_submitter_activity_at'),
         ],
+        [
+            'file'    => '021_ticket_created_by.sql',
+            'label'   => 'Tickets created by an agent on a requester\'s behalf',
+            'applied' => fn (): bool => column_exists('tickets', 'created_by_user_id'),
+        ],
     ];
 }
 

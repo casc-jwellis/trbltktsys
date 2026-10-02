@@ -15,5 +15,6 @@
 <script src="<?= asset_url('assets/js/ticket-quick-update.js') ?>"></script>
 <script src="<?= asset_url('assets/js/requester-info-edit.js') ?>"></script>
 <script src="<?= asset_url('assets/js/search-clear.js') ?>"></script>
+<script src="<?= asset_url('assets/js/modal-autoshow.js') ?>"></script>
 </body>
 </html>

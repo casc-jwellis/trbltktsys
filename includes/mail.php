@@ -441,18 +441,24 @@ function send_ticket_confirmation_email(array $ticket): void
     $ticketId = (int) $ticket['id'];
     $link = ticket_public_link($ticket['public_token']);
     $subject = ticket_email_subject($ticketId, $ticket['subject']);
-    $colors = TICKET_STATUS_EMAIL_COLORS['Open'];
-    $sentence = "We've received your ticket and will get back to you soon.";
+    // An agent can open a ticket (create-ticket.php) at any status and name
+    // themselves in $ticket['created_by_name']; a self-submitted ticket is
+    // always a plain, new "Open" one.
+    $status = $ticket['status'] ?? 'Open';
+    $colors = TICKET_STATUS_EMAIL_COLORS[$status] ?? TICKET_STATUS_EMAIL_COLORS['Open'];
+    $sentence = !empty($ticket['created_by_name'])
+        ? "{$ticket['created_by_name']} from the helpdesk opened this ticket on your behalf. We'll get back to you soon."
+        : "We've received your ticket and will get back to you soon.";
 
     $html = email_shell(
         email_intro($ticket['requester_name'], $sentence) . "\n"
-        . ticket_email_meta_box($ticketId, $ticket['subject'], 'Open', $colors) . "\n"
+        . ticket_email_meta_box($ticketId, $ticket['subject'], $status, $colors) . "\n"
         . email_button($link, 'View ticket status') . "\n"
         . ticket_email_footer($ticketId),
         $colors
     );
 
-    $text = ticket_email_plain($ticket['requester_name'], $sentence, $ticketId, $ticket['subject'], 'Open', null, null, null, $link);
+    $text = ticket_email_plain($ticket['requester_name'], $sentence, $ticketId, $ticket['subject'], $status, null, null, null, $link);
 
     send_ticket_email($ticket['requester_email'], $subject, $html, $text, $ticketId, true);
 }
@@ -463,9 +469,12 @@ function send_ticket_confirmation_email(array $ticket): void
  * caller never sees an exception here -- these are background notifications,
  * not something the (anonymous, unauthenticated) submitter should see fail.
  */
-function notify_ticket_agents(int $ticketId, string $subject, string $htmlBody, string $textBody): void
+function notify_ticket_agents(int $ticketId, string $subject, string $htmlBody, string $textBody, ?string $excludeEmail = null): void
 {
     foreach (ticket_assigned_agent_emails($ticketId) as $recipient) {
+        if ($excludeEmail !== null && strcasecmp($recipient['email'], $excludeEmail) === 0) {
+            continue;
+        }
         try {
             send_ticket_email($recipient['email'], $subject, $htmlBody, $textBody, $ticketId);
         } catch (Throwable $e) {
@@ -474,25 +483,38 @@ function notify_ticket_agents(int $ticketId, string $subject, string $htmlBody, 
     }
 }
 
-/** Sent to a ticket's assigned agents right after it's submitted. */
-function send_new_ticket_notification(int $ticketId, string $ticketSubject, string $priority): void
-{
+/**
+ * Sent to a ticket's assigned agents right after it's submitted. When an
+ * agent opened it on a requester's behalf, $createdBy names them and
+ * $excludeEmail (their own address) keeps them from being emailed about
+ * their own ticket; $status is then whatever they chose, not always "Open".
+ */
+function send_new_ticket_notification(
+    int $ticketId,
+    string $ticketSubject,
+    string $priority,
+    ?string $createdBy = null,
+    ?string $excludeEmail = null,
+    string $status = 'Open'
+): void {
     $link = ticket_staff_link($ticketId);
     $subject = ticket_email_subject($ticketId, $ticketSubject);
-    $colors = TICKET_STATUS_EMAIL_COLORS['Open'];
-    $sentence = 'A new ticket was submitted and assigned to your group.';
+    $colors = TICKET_STATUS_EMAIL_COLORS[$status] ?? TICKET_STATUS_EMAIL_COLORS['Open'];
+    $sentence = $createdBy !== null
+        ? "{$createdBy} opened a new ticket on a requester's behalf. It is assigned to you or your group."
+        : 'A new ticket was submitted and assigned to your group.';
 
     $html = email_shell(
         email_intro(null, $sentence) . "\n"
-        . ticket_email_meta_box($ticketId, $ticketSubject, 'Open', $colors, $priority) . "\n"
+        . ticket_email_meta_box($ticketId, $ticketSubject, $status, $colors, $priority) . "\n"
         . email_button($link, 'View ticket') . "\n"
         . ticket_email_footer($ticketId),
         $colors
     );
 
-    $text = ticket_email_plain(null, $sentence, $ticketId, $ticketSubject, 'Open', $priority, null, null, $link);
+    $text = ticket_email_plain(null, $sentence, $ticketId, $ticketSubject, $status, $priority, null, null, $link);
 
-    notify_ticket_agents($ticketId, $subject, $html, $text);
+    notify_ticket_agents($ticketId, $subject, $html, $text, $excludeEmail);
 }
 
 /**
