@@ -14,5 +14,6 @@
 <script src="assets/js/theme-toggle.js"></script>
 <script src="assets/js/ticket-quick-update.js"></script>
 <script src="assets/js/requester-info-edit.js"></script>
+<script src="assets/js/search-clear.js"></script>
 </body>
 </html>

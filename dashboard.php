@@ -120,7 +120,7 @@ require __DIR__ . '/includes/header.php';
                     <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
                 </svg>
             </span>
-            <input type="search" class="form-control" name="q" value="<?= e($searchQuery) ?>" placeholder="Search tickets" aria-label="Search tickets" maxlength="100">
+            <input type="search" class="form-control" name="q" data-submit-on-clear value="<?= e($searchQuery) ?>" placeholder="Search tickets" aria-label="Search tickets" maxlength="100">
         </div>
         <?php if ($isAdmin): ?>
             <select class="form-select form-select-sm w-auto" name="view" onchange="this.form.submit()">
