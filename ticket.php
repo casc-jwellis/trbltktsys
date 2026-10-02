@@ -82,7 +82,12 @@ $requesterTicketCount = (int) $stmt->fetchColumn();
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!verify_csrf()) {
+    if (empty($_POST) && empty($_FILES) && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+        // The whole request went over the server's post_max_size (or nginx's
+        // client_max_body_size), so PHP dropped the form fields along with
+        // the files -- say so, rather than blaming an expired session.
+        $error = 'The attached files were too large for the server to accept. Try fewer or smaller files.';
+    } elseif (!verify_csrf()) {
         $error = 'Your session expired. Please try again.';
     } else {
         $action = (string) ($_POST['action'] ?? 'manage_ticket');
@@ -187,13 +192,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if (!in_array($status, TICKET_STATUSES, true) || !in_array($priority, TICKET_PRIORITIES, true)) {
                 $error = 'Please choose valid values.';
-            } else {
+            }
+
+            // Validate and store any attached files up front, so a rejected
+            // file leaves the ticket untouched rather than half-updated.
+            $storedAttachments = [];
+            if ($error === null) {
+                try {
+                    $uploads = uploaded_files($_FILES['attachments'] ?? []);
+                    if (count($uploads) > COMMENT_ATTACHMENT_MAX_FILES) {
+                        throw new InvalidArgumentException('You can attach up to ' . COMMENT_ATTACHMENT_MAX_FILES . ' files at a time.');
+                    }
+                    foreach ($uploads as $upload) {
+                        $storedAttachments[] = store_comment_attachment_upload($upload);
+                    }
+                } catch (InvalidArgumentException $e) {
+                    discard_comment_attachments($storedAttachments);
+                    $error = $e->getMessage();
+                }
+            }
+
+            if ($error === null) {
+                // Files with no accompanying text still need a comment to hang off.
+                if ($response === '' && $storedAttachments) {
+                    $response = count($storedAttachments) === 1 ? '(See attached file.)' : '(See attached files.)';
+                }
+
                 db()->beginTransaction();
 
                 $stmt = db()->prepare('UPDATE tickets SET status = ?, priority = ? WHERE id = ?');
                 $stmt->execute([$status, $priority, $id]);
                 if ($response !== '') {
-                    add_ticket_comment($id, current_user_id(), $response, false);
+                    $commentId = add_ticket_comment($id, current_user_id(), $response, false);
+                    add_comment_attachments($commentId, $storedAttachments);
                 }
 
                 db()->commit();
@@ -207,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $mailError = null;
                 if (ticket_public_tokens_supported() && !empty($ticket['public_token'])) {
                     try {
-                        send_ticket_update_notification($ticket, $response);
+                        send_ticket_update_notification($ticket, $response, array_column($storedAttachments, 'filename'));
                     } catch (Throwable $e) {
                         $mailError = $e->getMessage();
                     }
@@ -377,7 +408,7 @@ require __DIR__ . '/includes/header.php';
         <?php if (!ticket_assignments_supported()): ?>
             <div class="alert alert-warning small">Ticket assignment is unavailable until an administrator visits <a href="migrate.php">migrate.php</a> to update the database.</div>
         <?php endif; ?>
-        <form method="post" id="manageTicketForm" data-loading-text="Saving...">
+        <form method="post" id="manageTicketForm" enctype="multipart/form-data" data-loading-text="Saving...">
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="manage_ticket">
             <?php if ($cannedResponses): ?>
@@ -395,6 +426,13 @@ require __DIR__ . '/includes/header.php';
                 <label class="form-label" for="response">Response to Submitter</label>
                 <textarea class="form-control" id="response" name="response" rows="4" placeholder="Type a reply the submitter will see..."></textarea>
             </div>
+            <?php if (ticket_comments_supported() && ticket_comment_attachments_supported()): ?>
+                <div class="mb-3">
+                    <label class="form-label" for="attachments">Attachments (optional)</label>
+                    <input type="file" class="form-control" id="attachments" name="attachments[]" multiple>
+                    <div class="form-text">Up to <?= COMMENT_ATTACHMENT_MAX_FILES ?> files, <?= COMMENT_ATTACHMENT_MAX_BYTES / 1024 / 1024 ?> MB each: images, PDF, Word/Excel/PowerPoint, text, CSV, or ZIP. The submitter can open them from the ticket page.</div>
+                </div>
+            <?php endif; ?>
             <div class="mb-3">
                 <label class="form-label" for="status">Status</label>
                 <select class="form-select" id="status" name="status">

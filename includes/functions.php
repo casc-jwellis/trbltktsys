@@ -439,16 +439,18 @@ function ticket_comment_attachments_by_ticket(int $ticketId): array
 /**
  * $userId is null for a comment posted by the submitter (via
  * ticket-status.php or an inbound email reply), who isn't a logged-in user.
+ * Returns the new comment's id, or 0 if comments aren't supported yet.
  */
-function add_ticket_comment(int $ticketId, ?int $userId, string $body, bool $isInternal): void
+function add_ticket_comment(int $ticketId, ?int $userId, string $body, bool $isInternal): int
 {
     if (!ticket_comments_supported()) {
-        return;
+        return 0;
     }
     $stmt = db()->prepare(
         'INSERT INTO ticket_comments (ticket_id, user_id, body, is_internal) VALUES (?, ?, ?, ?)'
     );
     $stmt->execute([$ticketId, $userId, $body, $isInternal ? 1 : 0]);
+    return (int) db()->lastInsertId();
 }
 
 /**
@@ -519,6 +521,131 @@ function store_ticket_attachment(array $file): ?string
     }
 
     return 'uploads/' . $filename;
+}
+
+// Files attached to a ticket comment -- by an agent on the ticket page, or by
+// a submitter's emailed reply (includes/imap.php uses the same limits).
+const COMMENT_ATTACHMENT_MAX_BYTES = 15 * 1024 * 1024;
+const COMMENT_ATTACHMENT_MAX_FILES = 5;
+const COMMENT_ATTACHMENT_MIME_EXTENSIONS = [
+    'image/png'  => 'png',
+    'image/jpeg' => 'jpg',
+    'image/gif'  => 'gif',
+    'image/webp' => 'webp',
+    'application/pdf' => 'pdf',
+    'text/plain' => 'txt',
+    'text/csv'   => 'csv',
+    'application/zip' => 'zip',
+    'application/msword' => 'doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+    'application/vnd.ms-excel' => 'xls',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+    'application/vnd.ms-powerpoint' => 'ppt',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
+];
+
+/**
+ * Flattens a multi-file $_FILES entry (name[], tmp_name[], ...) into a list
+ * of ordinary single-file entries, dropping the empty slot a form submits
+ * when no file was chosen.
+ */
+function uploaded_files(array $entry): array
+{
+    if (!isset($entry['name']) || !is_array($entry['name'])) {
+        return [];
+    }
+
+    $files = [];
+    foreach (array_keys($entry['name']) as $i) {
+        if (($entry['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+        $files[] = [
+            'name'     => $entry['name'][$i],
+            'tmp_name' => $entry['tmp_name'][$i],
+            'error'    => $entry['error'][$i],
+            'size'     => $entry['size'][$i],
+        ];
+    }
+    return $files;
+}
+
+/**
+ * Validates one uploaded file against the allow-list and size cap and moves
+ * it into uploads/ under a random name. Returns the same shape as the IMAP
+ * path stores in ticket_comment_attachments. Throws InvalidArgumentException
+ * (with a message safe to show the agent) if it's rejected.
+ */
+function store_comment_attachment_upload(array $file): array
+{
+    $label = $file['name'] !== '' ? '"' . $file['name'] . '"' : 'A file';
+
+    if ($file['error'] === UPLOAD_ERR_INI_SIZE || $file['error'] === UPLOAD_ERR_FORM_SIZE) {
+        throw new InvalidArgumentException("{$label} is too large for the server to accept.");
+    }
+    if ($file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
+        throw new InvalidArgumentException("{$label} failed to upload. Please try again.");
+    }
+    if ($file['size'] > COMMENT_ATTACHMENT_MAX_BYTES) {
+        throw new InvalidArgumentException("{$label} is too large (" . (COMMENT_ATTACHMENT_MAX_BYTES / 1024 / 1024) . ' MB max).');
+    }
+
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']) ?: 'application/octet-stream';
+    $extension = COMMENT_ATTACHMENT_MIME_EXTENSIONS[$mime] ?? null;
+
+    // Word/Excel/PowerPoint files are zip or old OLE containers that file
+    // detection often can't tell from a plain archive or generic binary --
+    // trust the name's extension for those, so they keep one Word can open.
+    $clientExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $officeExtensions = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+    $genericContainers = ['application/zip', 'application/octet-stream', 'application/x-ole-storage', 'application/CDFV2', 'application/vnd.ms-office'];
+    if (in_array($clientExtension, $officeExtensions, true) && ($extension === null || $mime === 'application/zip') && in_array($mime, $genericContainers, true)) {
+        $extension = $clientExtension;
+    }
+
+    if ($extension === null) {
+        throw new InvalidArgumentException("{$label} isn't an allowed file type (images, PDF, Word/Excel/PowerPoint, text, CSV, or ZIP).");
+    }
+
+    $uploadDir = __DIR__ . '/../uploads';
+    if (!is_dir($uploadDir) && !mkdir($uploadDir, 0755, true) && !is_dir($uploadDir)) {
+        throw new InvalidArgumentException("{$label} failed to upload. Please try again.");
+    }
+
+    $storedName = bin2hex(random_bytes(16)) . '.' . $extension;
+    if (!move_uploaded_file($file['tmp_name'], $uploadDir . '/' . $storedName)) {
+        throw new InvalidArgumentException("{$label} failed to upload. Please try again.");
+    }
+
+    return [
+        'path'     => 'uploads/' . $storedName,
+        'filename' => $file['name'] !== '' ? $file['name'] : $storedName,
+        'mimeType' => $mime,
+        'size'     => (int) $file['size'],
+    ];
+}
+
+/** Deletes files from store_comment_attachment_upload() that ended up not being attached to anything. */
+function discard_comment_attachments(array $stored): void
+{
+    foreach ($stored as $attachment) {
+        @unlink(__DIR__ . '/../' . $attachment['path']);
+    }
+}
+
+/** Records already-stored files against a comment. Discards them instead if there's nowhere to record them yet (pending migration). */
+function add_comment_attachments(int $commentId, array $stored): void
+{
+    if ($commentId === 0 || !ticket_comment_attachments_supported()) {
+        discard_comment_attachments($stored);
+        return;
+    }
+    $stmt = db()->prepare(
+        'INSERT INTO ticket_comment_attachments (comment_id, path, original_filename, mime_type, size) VALUES (?, ?, ?, ?, ?)'
+    );
+    foreach ($stored as $attachment) {
+        $stmt->execute([$commentId, $attachment['path'], $attachment['filename'], $attachment['mimeType'], $attachment['size']]);
+    }
 }
 
 function e(?string $value): string

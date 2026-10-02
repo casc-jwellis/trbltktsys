@@ -21,23 +21,9 @@ use Tehimap\Imap\Sync\SyncCursor;
 // offered.
 const IMAP_ENCRYPTIONS = ['ssl', 'none'];
 
-const IMAP_ATTACHMENT_MAX_BYTES = 15 * 1024 * 1024;
-const IMAP_ATTACHMENT_MIME_EXTENSIONS = [
-    'image/png'  => 'png',
-    'image/jpeg' => 'jpg',
-    'image/gif'  => 'gif',
-    'image/webp' => 'webp',
-    'application/pdf' => 'pdf',
-    'text/plain' => 'txt',
-    'text/csv'   => 'csv',
-    'application/zip' => 'zip',
-    'application/msword' => 'doc',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
-    'application/vnd.ms-excel' => 'xls',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
-    'application/vnd.ms-powerpoint' => 'ppt',
-    'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
-];
+// Same limits as files an agent attaches on the ticket page -- see includes/functions.php.
+const IMAP_ATTACHMENT_MAX_BYTES = COMMENT_ATTACHMENT_MAX_BYTES;
+const IMAP_ATTACHMENT_MIME_EXTENSIONS = COMMENT_ATTACHMENT_MIME_EXTENSIONS;
 
 // ---------------------------------------------------------------------------
 // Settings
