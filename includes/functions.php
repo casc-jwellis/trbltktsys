@@ -500,6 +500,15 @@ function e(?string $value): string
     return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8');
 }
 
+/**
+ * An asset's path with ?v=<last-modified time> appended, so a changed
+ * stylesheet or script isn't masked by a browser's cached copy after a deploy.
+ */
+function asset_url(string $path): string
+{
+    return $path . '?v=' . (int) @filemtime(__DIR__ . '/../' . $path);
+}
+
 function app_name(): string
 {
     static $config = null;

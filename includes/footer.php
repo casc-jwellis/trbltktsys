@@ -6,14 +6,14 @@
     </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="assets/js/form-loading.js"></script>
-<script src="assets/js/sortable-table.js"></script>
-<script src="assets/js/assignment-picker.js"></script>
-<script src="assets/js/tooltips.js"></script>
-<script src="assets/js/canned-response.js"></script>
-<script src="assets/js/theme-toggle.js"></script>
-<script src="assets/js/ticket-quick-update.js"></script>
-<script src="assets/js/requester-info-edit.js"></script>
-<script src="assets/js/search-clear.js"></script>
+<script src="<?= asset_url('assets/js/form-loading.js') ?>"></script>
+<script src="<?= asset_url('assets/js/sortable-table.js') ?>"></script>
+<script src="<?= asset_url('assets/js/assignment-picker.js') ?>"></script>
+<script src="<?= asset_url('assets/js/tooltips.js') ?>"></script>
+<script src="<?= asset_url('assets/js/canned-response.js') ?>"></script>
+<script src="<?= asset_url('assets/js/theme-toggle.js') ?>"></script>
+<script src="<?= asset_url('assets/js/ticket-quick-update.js') ?>"></script>
+<script src="<?= asset_url('assets/js/requester-info-edit.js') ?>"></script>
+<script src="<?= asset_url('assets/js/search-clear.js') ?>"></script>
 </body>
 </html>

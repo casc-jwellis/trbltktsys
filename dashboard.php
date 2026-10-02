@@ -146,17 +146,17 @@ require __DIR__ . '/includes/header.php';
 
 <div class="card">
     <div class="table-responsive">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover mb-0 sortable-table">
             <thead>
                 <tr>
-                    <th>#</th>
-                    <th>Subject</th>
-                    <th>Requester</th>
-                    <th>Category</th>
-                    <th>Priority</th>
-                    <th>Status</th>
-                    <th>Assigned To</th>
-                    <th>Last Activity</th>
+                    <th data-sort="number">#</th>
+                    <th data-sort>Subject</th>
+                    <th data-sort>Requester</th>
+                    <th data-sort>Category</th>
+                    <th data-sort="number">Priority</th>
+                    <th data-sort="number">Status</th>
+                    <th data-sort>Assigned To</th>
+                    <th data-sort="number" data-sort-direction="desc">Last Activity</th>
                 </tr>
             </thead>
             <tbody>
@@ -165,7 +165,7 @@ require __DIR__ . '/includes/header.php';
                 <?php endif; ?>
                 <?php foreach ($tickets as $ticket): ?>
                     <tr class="cursor-pointer" onclick="window.location='ticket.php?id=<?= (int) $ticket['id'] ?>'" style="cursor:pointer">
-                        <td>
+                        <td data-sort-value="<?= (int) $ticket['id'] ?>">
                             #<?= (int) $ticket['id'] ?>
                             <?php if (ticket_is_new($ticket)): ?>
                                 <span class="badge text-bg-primary">New</span>
@@ -174,10 +174,10 @@ require __DIR__ . '/includes/header.php';
                         <td><?= e($ticket['subject']) ?></td>
                         <td><?= e($ticket['requester_name']) ?></td>
                         <td><?= e($ticket['category']) ?></td>
-                        <td><span class="badge <?= priority_badge_class($ticket['priority']) ?>"><?= e($ticket['priority']) ?></span></td>
-                        <td><span class="badge <?= status_badge_class($ticket['status']) ?>"><?= e($ticket['status']) ?></span></td>
+                        <td data-sort-value="<?= (int) array_search($ticket['priority'], TICKET_PRIORITIES, true) ?>"><span class="badge <?= priority_badge_class($ticket['priority']) ?>"><?= e($ticket['priority']) ?></span></td>
+                        <td data-sort-value="<?= (int) array_search($ticket['status'], TICKET_STATUSES, true) ?>"><span class="badge <?= status_badge_class($ticket['status']) ?>"><?= e($ticket['status']) ?></span></td>
                         <td><?= e($ticket['assigned_agent_name'] ?: ($ticket['assigned_group_names'] ?: '—')) ?></td>
-                        <td><?= e(date('M j, Y g:i A', strtotime($ticket['last_activity_at']))) ?></td>
+                        <td data-sort-value="<?= (int) strtotime($ticket['last_activity_at']) ?>"><?= e(date('M j, Y g:i A', strtotime($ticket['last_activity_at']))) ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>
