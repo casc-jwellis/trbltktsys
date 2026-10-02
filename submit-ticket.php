@@ -125,7 +125,8 @@ require __DIR__ . '/includes/header.php';
 <div class="form-shell">
     <div class="mb-4">
         <h1 class="h3">Submit a Ticket</h1>
-        <p class="text-body-secondary">Let us know what's going on. No account required.</p>
+        <p class="text-body-secondary mb-2">Let us know what's going on. No account required.</p>
+        <p class="small text-body-secondary mb-0"><span class="required-key"></span>Required</p>
     </div>
 
     <?php if ($errors): ?>
@@ -144,20 +145,20 @@ require __DIR__ . '/includes/header.php';
                 <?= csrf_field() ?>
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label" for="requester_name">Your Name</label>
+                        <label class="form-label required" for="requester_name">Your Name</label>
                         <input class="form-control" id="requester_name" name="requester_name" required value="<?= e($old['requester_name']) ?>">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label" for="requester_email">Email Address</label>
+                        <label class="form-label required" for="requester_email">Email Address</label>
                         <input type="email" class="form-control" id="requester_email" name="requester_email" required value="<?= e($old['requester_email']) ?>">
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label" for="requester_phone">Phone</label>
+                        <label class="form-label required" for="requester_phone">Phone</label>
                         <input class="form-control" id="requester_phone" name="requester_phone" required maxlength="30" value="<?= e($old['requester_phone']) ?>">
                     </div>
                     <div class="w-100"></div>
                     <div class="col-md-6">
-                        <label class="form-label" for="category">Category</label>
+                        <label class="form-label required" for="category">Category</label>
                         <select class="form-select" id="category" name="category">
                             <?php foreach (category_names() as $category): ?>
                                 <option value="<?= e($category) ?>" <?= $old['category'] === $category ? 'selected' : '' ?>><?= e($category) ?></option>
@@ -165,7 +166,7 @@ require __DIR__ . '/includes/header.php';
                         </select>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label" for="priority">Priority</label>
+                        <label class="form-label required" for="priority">Priority</label>
                         <select class="form-select" id="priority" name="priority">
                             <?php foreach (TICKET_PRIORITIES as $priority): ?>
                                 <option value="<?= e($priority) ?>" <?= $old['priority'] === $priority ? 'selected' : '' ?>><?= e($priority) ?></option>
@@ -173,11 +174,11 @@ require __DIR__ . '/includes/header.php';
                         </select>
                     </div>
                     <div class="col-12">
-                        <label class="form-label" for="subject">Subject</label>
+                        <label class="form-label required" for="subject">Subject</label>
                         <input class="form-control" id="subject" name="subject" required value="<?= e($old['subject']) ?>">
                     </div>
                     <div class="col-12">
-                        <label class="form-label" for="description">Describe the Issue</label>
+                        <label class="form-label required" for="description">Describe the Issue</label>
                         <textarea class="form-control" id="description" name="description" rows="5" required><?= e($old['description']) ?></textarea>
                     </div>
                     <div class="col-12">

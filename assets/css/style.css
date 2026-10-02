@@ -77,6 +77,22 @@ body {
     border-color: var(--brand-hover);
 }
 
+/* A red asterisk after a label marks its input as required. */
+.form-label.required::after,
+.required-key::before {
+    content: "*";
+    color: var(--bs-danger);
+    font-weight: 700;
+}
+
+.form-label.required::after {
+    margin-left: .2rem;
+}
+
+.required-key::before {
+    margin-right: .25rem;
+}
+
 .card {
     border: 1px solid var(--border);
     border-radius: 1rem;
