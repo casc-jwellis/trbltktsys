@@ -165,13 +165,13 @@ require __DIR__ . '/includes/header.php';
                 <?php endif; ?>
                 <?php foreach ($tickets as $ticket): ?>
                     <tr class="cursor-pointer" onclick="window.location='ticket.php?id=<?= (int) $ticket['id'] ?>'" style="cursor:pointer">
-                        <td data-sort-value="<?= (int) $ticket['id'] ?>">
-                            #<?= (int) $ticket['id'] ?>
+                        <td data-sort-value="<?= (int) $ticket['id'] ?>">#<?= (int) $ticket['id'] ?></td>
+                        <td data-sort-value="<?= e(mb_strtolower($ticket['subject'])) ?>">
+                            <?= e($ticket['subject']) ?>
                             <?php if (ticket_is_new($ticket)): ?>
-                                <span class="badge text-bg-primary">New</span>
+                                <span class="badge text-bg-primary ms-1">New</span>
                             <?php endif; ?>
                         </td>
-                        <td><?= e($ticket['subject']) ?></td>
                         <td><?= e($ticket['requester_name']) ?></td>
                         <td><?= e($ticket['category']) ?></td>
                         <td data-sort-value="<?= (int) array_search($ticket['priority'], TICKET_PRIORITIES, true) ?>"><span class="badge <?= priority_badge_class($ticket['priority']) ?>"><?= e($ticket['priority']) ?></span></td>
