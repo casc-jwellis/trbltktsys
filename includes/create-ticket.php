@@ -22,7 +22,6 @@ function create_ticket_defaults(): array
         'priority'         => 'Medium',
         'status'           => 'Open',
         'assigned_agent_id' => 0,
-        'assigned_groups'  => [],
     ];
 }
 
@@ -33,8 +32,6 @@ function create_ticket_form_from_post(array $post): array
     foreach (array_keys($form) as $field) {
         if ($field === 'assigned_agent_id') {
             $form[$field] = (int) ($post[$field] ?? 0);
-        } elseif ($field === 'assigned_groups') {
-            $form[$field] = valid_ids_from_post((array) ($post[$field] ?? []), assignable_groups());
         } else {
             $form[$field] = trim((string) ($post[$field] ?? ''));
         }
@@ -139,13 +136,8 @@ function create_ticket_submit(array $form, array $files): array
     $stmt->execute($ticketValues);
     $ticketId = (int) db()->lastInsertId();
 
-    // Groups the agent picked win; otherwise fall back to whichever groups
-    // handle the category, same as a self-submitted ticket.
-    if ($form['assigned_groups']) {
-        save_ticket_assignments($ticketId, $form['assigned_groups']);
-    } else {
-        assign_ticket_by_category($ticketId, $form['category']);
-    }
+    // Groups come from the category alone, same as a self-submitted ticket.
+    assign_ticket_by_category($ticketId, $form['category']);
 
     db()->commit();
 

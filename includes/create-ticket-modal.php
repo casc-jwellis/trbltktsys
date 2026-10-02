@@ -5,7 +5,6 @@
  * @var array    $createForm   the form's current values (see create_ticket_defaults())
  * @var string[] $createErrors validation errors from a failed attempt; the modal reopens itself to show them
  */
-$createGroups = ticket_assignments_supported() ? assignable_groups() : [];
 $createAgents = ticket_assigned_agent_supported() ? active_agents() : [];
 ?>
 <div class="modal fade" id="createTicketModal" tabindex="-1" aria-labelledby="createTicketModalLabel" aria-hidden="true" <?= $createErrors ? 'data-show-on-load' : '' ?>>
@@ -88,25 +87,6 @@ $createAgents = ticket_assigned_agent_supported() ? active_agents() : [];
                                     <?php endforeach; ?>
                                 </select>
                                 <div class="form-text">Once an agent is assigned, ticket emails go only to them instead of the whole group.</div>
-                            </div>
-                        <?php endif; ?>
-                        <?php if ($createGroups): ?>
-                            <div class="col-12">
-                                <label class="form-label">Assigned Groups</label>
-                                <div class="assignment-picker">
-                                    <div class="assignment-pills mb-2"></div>
-                                    <input type="text" class="form-control form-control-sm assignment-search" placeholder="Search groups...">
-                                    <div class="list-group assignment-dropdown"></div>
-                                    <div class="assignment-options">
-                                        <?php foreach ($createGroups as $group): ?>
-                                            <div class="form-check assignment-option">
-                                                <input class="form-check-input" type="checkbox" name="assigned_groups[]" value="<?= (int) $group['id'] ?>" id="new_group_<?= (int) $group['id'] ?>" <?= in_array((int) $group['id'], $createForm['assigned_groups'], true) ? 'checked' : '' ?>>
-                                                <label class="form-check-label" for="new_group_<?= (int) $group['id'] ?>"><?= e($group['name']) ?></label>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                </div>
-                                <div class="form-text">Leave empty to assign by category, the same as a ticket the requester submits themselves.</div>
                             </div>
                         <?php endif; ?>
                         <div class="col-12">
