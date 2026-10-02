@@ -137,6 +137,38 @@ body {
     vertical-align: middle;
 }
 
+/* Magnifying-glass search box on the ticket queue: the icon and the input
+   read as one field, with the brand color on focus. */
+.search-box {
+    width: 16rem;
+    flex: 0 1 auto;
+    border-radius: var(--bs-border-radius-sm);
+}
+
+.search-box .input-group-text {
+    background: var(--bs-body-bg);
+    border-right: 0;
+    color: var(--muted);
+}
+
+.search-box .form-control {
+    border-left: 0;
+    padding-left: 0;
+}
+
+.search-box .form-control:focus {
+    box-shadow: none;
+}
+
+.search-box:focus-within {
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--brand) 25%, transparent);
+}
+
+.search-box:focus-within .input-group-text,
+.search-box:focus-within .form-control {
+    border-color: var(--brand);
+}
+
 .sortable-header {
     cursor: pointer;
     user-select: none;

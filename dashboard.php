@@ -5,6 +5,7 @@ require_login();
 $statusFilter = $_GET['status'] ?? '';
 $categoryFilter = $_GET['category'] ?? '';
 $viewFilter = $_GET['view'] ?? 'mine';
+$searchQuery = mb_substr(trim((string) ($_GET['q'] ?? '')), 0, 100);
 
 $assignmentsSupported = ticket_assignments_supported();
 $agentAssignmentSupported = ticket_assigned_agent_supported();
@@ -32,6 +33,19 @@ if ($statusFilter === 'all') {
 if (in_array($categoryFilter, category_names(), true)) {
     $where[] = 't.category = ?';
     $params[] = $categoryFilter;
+}
+
+// Keyword search: every whitespace-separated word has to appear somewhere in
+// the subject, description, requester name or requester email (case
+// insensitive, via the column collation), so adding words narrows the
+// results. LIKE's own wildcards are escaped so a "%" or "_" typed into the
+// box is matched literally.
+if ($searchQuery !== '') {
+    foreach (array_slice(preg_split('/\s+/', $searchQuery), 0, 8) as $term) {
+        $pattern = '%' . addcslashes($term, '\\%_') . '%';
+        $where[] = '(t.subject LIKE ? OR t.description LIKE ? OR t.requester_name LIKE ? OR t.requester_email LIKE ?)';
+        array_push($params, $pattern, $pattern, $pattern, $pattern);
+    }
 }
 
 // Agents only see tickets assigned to one of their groups, or directly to
@@ -99,21 +113,29 @@ require __DIR__ . '/includes/header.php';
         <h1 class="h3 mb-1">Ticket Queue</h1>
         <p class="text-body-secondary mb-0"><?= count($tickets) ?> ticket<?= count($tickets) === 1 ? '' : 's' ?></p>
     </div>
-    <form class="d-flex gap-2" method="get">
+    <form class="d-flex gap-2 flex-wrap" method="get">
+        <div class="input-group input-group-sm search-box">
+            <span class="input-group-text" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001q.044.06.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1 1 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0"/>
+                </svg>
+            </span>
+            <input type="search" class="form-control" name="q" value="<?= e($searchQuery) ?>" placeholder="Search tickets" aria-label="Search tickets" maxlength="100">
+        </div>
         <?php if ($isAdmin): ?>
-            <select class="form-select form-select-sm" name="view" onchange="this.form.submit()">
+            <select class="form-select form-select-sm w-auto" name="view" onchange="this.form.submit()">
                 <option value="mine" <?= $viewFilter === 'mine' ? 'selected' : '' ?>>My Tickets</option>
                 <option value="all" <?= $viewFilter === 'all' ? 'selected' : '' ?>>All Tickets</option>
             </select>
         <?php endif; ?>
-        <select class="form-select form-select-sm" name="status" onchange="this.form.submit()">
+        <select class="form-select form-select-sm w-auto" name="status" onchange="this.form.submit()">
             <option value="" <?= $statusFilter === '' ? 'selected' : '' ?>>Open &amp; In Progress</option>
             <option value="all" <?= $statusFilter === 'all' ? 'selected' : '' ?>>All Statuses</option>
             <?php foreach (TICKET_STATUSES as $status): ?>
                 <option value="<?= e($status) ?>" <?= $statusFilter === $status ? 'selected' : '' ?>><?= e($status) ?></option>
             <?php endforeach; ?>
         </select>
-        <select class="form-select form-select-sm" name="category" onchange="this.form.submit()">
+        <select class="form-select form-select-sm w-auto" name="category" onchange="this.form.submit()">
             <option value="">All Categories</option>
             <?php foreach (category_names() as $category): ?>
                 <option value="<?= e($category) ?>" <?= $categoryFilter === $category ? 'selected' : '' ?>><?= e($category) ?></option>
