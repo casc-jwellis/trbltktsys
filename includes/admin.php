@@ -91,6 +91,37 @@ function user_is_disabled(int $userId): bool
 }
 
 /**
+ * Whether a user appears anywhere in ticket history -- wrote a response or
+ * internal note, is a ticket's assigned agent, or opened a ticket on a
+ * requester's behalf. Deleting such a user would null out those references
+ * (see the ON DELETE SET NULL foreign keys in schema.sql), which strips their
+ * name from their old responses and makes the app mistake them for the
+ * submitter, so they're disabled instead of removed.
+ */
+function user_has_ticket_history(int $userId): bool
+{
+    $checks = [];
+    if (ticket_comments_supported()) {
+        $checks[] = 'SELECT 1 FROM ticket_comments WHERE user_id = ?';
+    }
+    if (ticket_assigned_agent_supported()) {
+        $checks[] = 'SELECT 1 FROM tickets WHERE assigned_agent_id = ?';
+    }
+    if (ticket_created_by_supported()) {
+        $checks[] = 'SELECT 1 FROM tickets WHERE created_by_user_id = ?';
+    }
+
+    foreach ($checks as $sql) {
+        $stmt = db()->prepare($sql . ' LIMIT 1');
+        $stmt->execute([$userId]);
+        if ($stmt->fetchColumn() !== false) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Deletes every ticket, its conversation thread, its group assignment, its
  * attached screenshot, and the requester directory -- but leaves staff
  * accounts, groups, categories, canned responses, and email settings alone.

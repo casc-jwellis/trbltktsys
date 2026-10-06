@@ -66,7 +66,7 @@ $myId = current_user_id();
                                     </button>
                                 </form>
 
-                                <form method="post" class="d-inline" onsubmit="return confirm('Remove this user? This cannot be undone.');">
+                                <form method="post" class="d-inline" onsubmit="return confirm('Remove this user? This cannot be undone. If they have any ticket history they will be disabled instead, so their name stays on their tickets.');">
                                     <?= csrf_field() ?>
                                     <input type="hidden" name="action" value="delete_user">
                                     <input type="hidden" name="user_id" value="<?= (int) $user['id'] ?>">

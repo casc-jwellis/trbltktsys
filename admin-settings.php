@@ -192,6 +192,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('error', 'You cannot remove your own account.');
         } elseif (user_is_active_admin($userId) && active_admin_count($userId) === 0) {
             flash('error', 'At least one active administrator is required — cannot remove the last one.');
+        } elseif (user_has_ticket_history($userId)) {
+            // Keep the account so their name stays on their responses and
+            // tickets -- see user_has_ticket_history().
+            db()->prepare('UPDATE users SET disabled = 1 WHERE id = ?')->execute([$userId]);
+            flash('success', 'This user has ticket history, so they were disabled instead of removed. Their name stays on their tickets and responses.');
         } else {
             db()->prepare('DELETE FROM users WHERE id = ?')->execute([$userId]);
             flash('success', 'User removed.');
