@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') =
     $mailError = null;
     if ($statusChanged && ticket_public_tokens_supported() && !empty($ticket['public_token'])) {
         try {
-            send_ticket_update_notification($ticket, '');
+            send_ticket_update_notification($ticket, '', [], current_user()['full_name']);
         } catch (Throwable $e) {
             $mailError = $e->getMessage();
         }
@@ -238,7 +238,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $mailError = null;
                 if (ticket_public_tokens_supported() && !empty($ticket['public_token'])) {
                     try {
-                        send_ticket_update_notification($ticket, $response, array_column($storedAttachments, 'filename'));
+                        send_ticket_update_notification($ticket, $response, array_column($storedAttachments, 'filename'), current_user()['full_name']);
                     } catch (Throwable $e) {
                         $mailError = $e->getMessage();
                     }

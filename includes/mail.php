@@ -553,7 +553,7 @@ function send_ticket_reply_notification(int $ticketId, string $ticketSubject, st
  * out. $ticket['status'] must already reflect the value the agent just
  * saved, not a value fetched before the update.
  */
-function send_ticket_update_notification(array $ticket, string $response = '', array $attachmentNames = []): void
+function send_ticket_update_notification(array $ticket, string $response = '', array $attachmentNames = [], ?string $agentName = null): void
 {
     $ticketId = (int) $ticket['id'];
     $link = ticket_public_link($ticket['public_token']);
@@ -561,7 +561,12 @@ function send_ticket_update_notification(array $ticket, string $response = '', a
     $status = $ticket['status'];
     $colors = TICKET_STATUS_EMAIL_COLORS[$status] ?? TICKET_STATUS_EMAIL_COLORS['Open'];
     $hasResponse = $response !== '';
-    $sentence = $hasResponse ? 'Your ticket has been updated.' : 'Your ticket status has changed.';
+    // $agentName is the agent who made the change, so the requester knows
+    // who they're hearing from; "support" is the generic fallback.
+    $sentence = $hasResponse
+        ? ($agentName !== null ? "{$agentName} updated your ticket." : 'Your ticket has been updated.')
+        : ($agentName !== null ? "{$agentName} changed the status of your ticket." : 'Your ticket status has changed.');
+    $responseLabel = 'Response from ' . ($agentName ?? 'support');
     $showReopenNote = in_array($status, ['Resolved', 'Closed'], true);
     $reopenNoteText = "Didn't fully fix it? Use the link below to reply and we'll reopen this ticket.";
     // Files aren't attached to the email itself -- they're served from the
@@ -574,7 +579,7 @@ function send_ticket_update_notification(array $ticket, string $response = '', a
     $inner = email_intro($ticket['requester_name'], $sentence) . "\n"
         . ticket_email_meta_box($ticketId, $ticket['subject'], $status, $colors);
     if ($hasResponse) {
-        $inner .= "\n" . ticket_email_callout('Response from support', $response);
+        $inner .= "\n" . ticket_email_callout($responseLabel, $response);
     }
     if ($attachmentNoteText !== null) {
         $inner .= "\n" . email_note($attachmentNoteText);
@@ -593,7 +598,7 @@ function send_ticket_update_notification(array $ticket, string $response = '', a
         $ticket['subject'],
         $status,
         null,
-        $hasResponse ? ['Response from support', $response] : null,
+        $hasResponse ? [$responseLabel, $response] : null,
         implode("\n", array_filter([$attachmentNoteText, $showReopenNote ? $reopenNoteText : null])) ?: null,
         $link
     );
