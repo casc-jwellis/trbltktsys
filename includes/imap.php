@@ -1,8 +1,9 @@
 <?php
 // Inbound mail: settings and the actual "pull submitter replies in over
 // IMAP" pipeline, via the vendored raw-socket IMAP4rev1 client in
-// lib/tehimap (no Composer -- same hand-vendoring approach as PHPMailer in
-// lib/phpmailer). Run from the CLI via bin/imap-poll.php, on whatever
+// lib/tehimap (no Composer -- same hand-vendoring approach as the tehsmtp
+// client in lib/tehsmtp that includes/mail.php uses for outbound mail). Run
+// from the CLI via bin/imap-poll.php, on whatever
 // schedule the server's task runner is configured for -- there's no
 // built-in cron here.
 require_once __DIR__ . '/../lib/tehimap/autoload.php';

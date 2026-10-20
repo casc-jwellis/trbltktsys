@@ -141,7 +141,7 @@ CREATE TABLE canned_responses (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- SMTP settings (Admin Settings -> Email) used to send mail via PHPMailer.
+-- SMTP settings (Admin Settings -> Email) used to send mail via lib/tehsmtp.
 -- Single settings row, always id 1.
 CREATE TABLE smtp_settings (
     id          TINYINT UNSIGNED PRIMARY KEY,

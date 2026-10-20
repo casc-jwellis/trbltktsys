@@ -101,10 +101,11 @@ Once nothing is pending it just links to the login page.
 ## Stack
 
 Plain PHP (PDO) + MySQL, Bootstrap 5 for styling. No build step or Composer required. Mail is
-handled by two hand-vendored libraries (not via Composer): [PHPMailer](https://github.com/PHPMailer/PHPMailer)
-in `lib/phpmailer/` for outgoing SMTP, and a zero-dependency, raw-socket IMAP4rev1 client in
-`lib/tehimap/` for inbound mail (`bin/imap-poll.php`). Both are configured under Admin Settings ->
-Email.
+handled by two hand-vendored, zero-dependency libraries (not via Composer): `lib/tehsmtp/`, a pure-PHP
+SMTP client, for outgoing mail, and `lib/tehimap/`, a raw-socket IMAP4rev1 client, for inbound mail
+(`bin/imap-poll.php`). Both are configured under Admin Settings -> Email. The SMTP client requires
+the PHP `openssl` extension for STARTTLS and SSL/TLS, verifies the server's certificate, and only
+sends a username and password over an encrypted connection (or to a server on the same machine).
 
 ## Inbound mail setup
 
