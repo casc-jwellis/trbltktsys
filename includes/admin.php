@@ -122,6 +122,19 @@ function user_has_ticket_history(int $userId): bool
 }
 
 /**
+ * Makes the next ticket #1 again. DELETE FROM leaves a table's AUTO_INCREMENT
+ * counter where it was, so after emptying tickets the numbering would
+ * otherwise carry on from the old total. Must run after the delete has
+ * committed, not inside its transaction -- ALTER TABLE implicitly commits --
+ * and only ever on an empty table (InnoDB won't set the counter below the
+ * highest existing id, so on a non-empty one this would quietly do nothing).
+ */
+function reset_ticket_numbering(): void
+{
+    db()->exec('ALTER TABLE tickets AUTO_INCREMENT = 1');
+}
+
+/**
  * Deletes every ticket, its conversation thread, its group assignment, its
  * attached screenshot, and the requester directory -- but leaves staff
  * accounts, groups, categories, canned responses, and email settings alone.
@@ -146,6 +159,8 @@ function flush_tickets(): void
         $pdo->rollBack();
         throw $e;
     }
+
+    reset_ticket_numbering();
 
     $uploadDir = __DIR__ . '/../uploads';
     foreach (glob($uploadDir . '/*') ?: [] as $path) {
@@ -177,4 +192,6 @@ function purge_all_data(): void
         $pdo->rollBack();
         throw $e;
     }
+
+    reset_ticket_numbering();
 }
