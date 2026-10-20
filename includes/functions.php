@@ -222,6 +222,24 @@ function ticket_is_new(array $ticket): bool
     return strtotime($ticket['last_submitter_activity_at']) > strtotime($ticket['viewed_at']);
 }
 
+/** A hash of everything the ticket queue displays, so the queue page can tell cheaply whether it has changed (assets/js/queue-auto-refresh.js). */
+function queue_fingerprint(array $tickets): string
+{
+    $parts = [];
+    foreach ($tickets as $ticket) {
+        $parts[] = implode('|', [
+            $ticket['id'],
+            $ticket['status'],
+            $ticket['priority'],
+            $ticket['last_activity_at'],
+            $ticket['assigned_agent_name'] ?? '',
+            $ticket['assigned_group_names'] ?? '',
+            ticket_is_new($ticket) ? 1 : 0,
+        ]);
+    }
+    return md5(implode("\n", $parts));
+}
+
 /** Whether tickets.created_by_user_id exists yet (migration 021). */
 function ticket_created_by_supported(): bool
 {

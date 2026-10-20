@@ -16,6 +16,7 @@
 <script src="<?= asset_url('assets/js/requester-info-edit.js') ?>"></script>
 <script src="<?= asset_url('assets/js/search-clear.js') ?>"></script>
 <script src="<?= asset_url('assets/js/modal-autoshow.js') ?>"></script>
+<script src="<?= asset_url('assets/js/queue-auto-refresh.js') ?>"></script>
 <script src="<?= asset_url('assets/js/theme-preview.js') ?>"></script>
 </body>
 </html>

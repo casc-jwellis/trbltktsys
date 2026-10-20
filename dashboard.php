@@ -128,6 +128,16 @@ $sql .= ' ORDER BY last_activity_at DESC';
 $stmt = db()->prepare($sql);
 $stmt->execute($params);
 $tickets = $stmt->fetchAll();
+$queueFingerprint = queue_fingerprint($tickets);
+
+// Polled by assets/js/queue-auto-refresh.js with the page's own filters, so the
+// fingerprint always reflects exactly what this agent's queue would show.
+if (isset($_GET['poll'])) {
+    header('Content-Type: application/json');
+    header('Cache-Control: no-store');
+    echo json_encode(['fingerprint' => $queueFingerprint]);
+    exit;
+}
 
 $pageTitle = 'Ticket Queue';
 require __DIR__ . '/includes/header.php';
@@ -174,7 +184,7 @@ require __DIR__ . '/includes/header.php';
     </form>
 </div>
 
-<div class="card">
+<div class="card" data-queue-fingerprint="<?= e($queueFingerprint) ?>">
     <div class="table-responsive">
         <table class="table table-hover mb-0 sortable-table">
             <thead>
