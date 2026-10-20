@@ -18,7 +18,7 @@ function create_ticket_defaults(): array
         'requester_phone'  => '',
         'subject'          => '',
         'description'      => '',
-        'category'         => 'General',
+        'category'         => '',
         'priority'         => 'Medium',
         'status'           => 'Open',
         'assigned_agent_id' => 0,
@@ -63,7 +63,9 @@ function create_ticket_submit(array $form, array $files): array
     if ($form['description'] === '') {
         $errors[] = 'Please describe the issue.';
     }
-    if (!in_array($form['category'], category_names(), true)) {
+    if ($form['category'] === '') {
+        $errors[] = 'Please select a help category.';
+    } elseif (!in_array($form['category'], category_names(), true)) {
         $errors[] = 'Please choose a valid category.';
     }
     if (!in_array($form['priority'], TICKET_PRIORITIES, true)) {

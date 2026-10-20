@@ -9,7 +9,7 @@ $old = [
     'requester_phone' => '',
     'subject'         => '',
     'description'     => '',
-    'category'        => 'General',
+    'category'        => '',
     'priority'        => 'Medium',
 ];
 
@@ -39,7 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($old['description'] === '') {
         $errors[] = 'Please describe the issue.';
     }
-    if (!in_array($old['category'], category_names(), true)) {
+    if ($old['category'] === '') {
+        $errors[] = 'Please select a help category.';
+    } elseif (!in_array($old['category'], category_names(), true)) {
         $errors[] = 'Please choose a valid category.';
     }
     if (!in_array($old['priority'], TICKET_PRIORITIES, true)) {
@@ -159,7 +161,9 @@ require __DIR__ . '/includes/header.php';
                     <div class="w-100"></div>
                     <div class="col-md-6">
                         <label class="form-label required" for="category">Category</label>
-                        <select class="form-select" id="category" name="category">
+                        <select class="form-select" id="category" name="category" required>
+                            <?php // A placeholder only -- not a real category, and disabled so it can't be re-picked once a category is chosen. ?>
+                            <option value="" disabled <?= $old['category'] === '' ? 'selected' : '' ?>>Select a Help Category</option>
                             <?php foreach (category_names() as $category): ?>
                                 <option value="<?= e($category) ?>" <?= $old['category'] === $category ? 'selected' : '' ?>><?= e($category) ?></option>
                             <?php endforeach; ?>

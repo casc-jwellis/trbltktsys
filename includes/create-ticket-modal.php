@@ -47,7 +47,9 @@ $createAgents = ticket_assigned_agent_supported() ? active_agents() : [];
                         <div class="w-100"></div>
                         <div class="col-md-4">
                             <label class="form-label required" for="new_category">Category</label>
-                            <select class="form-select" id="new_category" name="category">
+                            <select class="form-select" id="new_category" name="category" required>
+                                <?php // A placeholder only -- not a real category, and disabled so it can't be re-picked once a category is chosen. ?>
+                                <option value="" disabled <?= $createForm['category'] === '' ? 'selected' : '' ?>>Select a Help Category</option>
                                 <?php foreach (category_names() as $category): ?>
                                     <option value="<?= e($category) ?>" <?= $createForm['category'] === $category ? 'selected' : '' ?>><?= e($category) ?></option>
                                 <?php endforeach; ?>
