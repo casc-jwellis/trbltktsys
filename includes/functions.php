@@ -662,7 +662,8 @@ function asset_url(string $path): string
     return $path . '?v=' . (int) @filemtime(__DIR__ . '/../' . $path);
 }
 
-function app_name(): string
+/** The site name from config/config.php (chosen at install), or "Helpdesk" -- the default Admin Settings -> Theme can override. */
+function configured_app_name(): string
 {
     static $config = null;
     if ($config === null) {
@@ -670,6 +671,12 @@ function app_name(): string
         $config = file_exists($path) ? require $path : [];
     }
     return $config['app']['name'] ?? 'Helpdesk';
+}
+
+/** The site name an admin set in Admin Settings -> Theme, else the configured one. */
+function app_name(): string
+{
+    return theme_settings()['site_name'] ?? configured_app_name();
 }
 
 function csrf_token(): string

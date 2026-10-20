@@ -5,7 +5,7 @@ require_once __DIR__ . '/includes/mail.php';
 require_once __DIR__ . '/includes/imap.php';
 require_admin();
 
-$activeTab = in_array($_GET['tab'] ?? '', ['groups', 'categories', 'responses', 'email', 'database'], true) ? $_GET['tab'] : 'users';
+$activeTab = in_array($_GET['tab'] ?? '', ['groups', 'categories', 'responses', 'theme', 'email', 'database'], true) ? $_GET['tab'] : 'users';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf()) {
@@ -350,6 +350,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('success', 'Canned response removed.');
         }
         $activeTab = 'responses';
+    } elseif ($action === 'update_theme_settings') {
+        if (!theme_settings_supported()) {
+            flash('error', 'The database is out of date. Visit migrate.php to enable theme settings.');
+        } else {
+            // Control characters (newlines especially) have no place in a name
+            // that ends up in page titles and email headers.
+            $siteName = trim((string) preg_replace('/[\x00-\x1F\x7F]/u', '', (string) ($_POST['site_name'] ?? '')));
+            $color = (string) ($_POST['color'] ?? '');
+
+            $errors = [];
+            if (mb_strlen($siteName) > 100) {
+                $errors[] = 'The site name can be up to 100 characters.';
+            }
+            if (!isset(THEME_PRESETS[$color])) {
+                $errors[] = 'Please choose one of the theme colors.';
+            }
+
+            if (!$errors) {
+                save_theme_settings($siteName, $color);
+                flash('success', 'Theme settings updated.');
+            } else {
+                flash('error', implode(' ', $errors));
+            }
+        }
+        $activeTab = 'theme';
     } elseif ($action === 'update_smtp_settings') {
         if (!smtp_settings_supported()) {
             flash('error', 'The database is out of date. Visit migrate.php to enable email settings.');
@@ -534,6 +559,9 @@ require __DIR__ . '/includes/header.php';
         <a class="nav-link <?= $activeTab === 'responses' ? 'active' : '' ?>" href="admin-settings.php?tab=responses">Responses</a>
     </li>
     <li class="nav-item">
+        <a class="nav-link <?= $activeTab === 'theme' ? 'active' : '' ?>" href="admin-settings.php?tab=theme">Theme</a>
+    </li>
+    <li class="nav-item">
         <a class="nav-link <?= $activeTab === 'email' ? 'active' : '' ?>" href="admin-settings.php?tab=email">Email Server</a>
     </li>
     <li class="nav-item">
@@ -547,6 +575,8 @@ require __DIR__ . '/includes/header.php';
     <?php require __DIR__ . '/includes/admin-categories-tab.php'; ?>
 <?php elseif ($activeTab === 'responses'): ?>
     <?php require __DIR__ . '/includes/admin-responses-tab.php'; ?>
+<?php elseif ($activeTab === 'theme'): ?>
+    <?php require __DIR__ . '/includes/admin-theme-tab.php'; ?>
 <?php elseif ($activeTab === 'email'): ?>
     <?php require __DIR__ . '/includes/admin-email-tab.php'; ?>
 <?php elseif ($activeTab === 'database'): ?>

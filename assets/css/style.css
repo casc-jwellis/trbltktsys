@@ -185,6 +185,53 @@ body {
     border-color: var(--brand);
 }
 
+/* Admin Settings -> Theme: a grid of selectable color swatches. The radio is
+   a visually hidden .btn-check; the label next to it is the clickable card. */
+.theme-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: .75rem;
+}
+
+.theme-option {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    width: 100%;
+    padding: .6rem .8rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .6rem;
+    background: var(--bs-body-bg);
+    cursor: pointer;
+}
+
+.theme-option:hover {
+    border-color: var(--muted);
+}
+
+.btn-check:checked + .theme-option {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--brand) 25%, transparent);
+}
+
+.btn-check:focus-visible + .theme-option {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+}
+
+.theme-swatch {
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 50%;
+    border: 1px solid rgba(var(--shadow-color), .25);
+    flex: 0 0 auto;
+}
+
+.theme-option-label {
+    margin-left: .25rem;
+    font-weight: 500;
+}
+
 .sortable-header {
     cursor: pointer;
     user-select: none;

@@ -159,6 +159,11 @@ function available_migrations(): array
             'label'   => 'Tickets created by an agent on a requester\'s behalf',
             'applied' => fn (): bool => column_exists('tickets', 'created_by_user_id'),
         ],
+        [
+            'file'    => '022_theme_settings.sql',
+            'label'   => 'Site name and theme color settings',
+            'applied' => fn (): bool => table_exists('theme_settings'),
+        ],
     ];
 }
 
