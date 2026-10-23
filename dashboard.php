@@ -217,7 +217,7 @@ require __DIR__ . '/includes/header.php';
                         <td data-sort-value="<?= (int) array_search($ticket['priority'], TICKET_PRIORITIES, true) ?>"><span class="badge <?= priority_badge_class($ticket['priority']) ?>"><?= e($ticket['priority']) ?></span></td>
                         <td data-sort-value="<?= (int) array_search($ticket['status'], TICKET_STATUSES, true) ?>"><span class="badge <?= status_badge_class($ticket['status']) ?>"><?= e($ticket['status']) ?></span></td>
                         <td><?= e($ticket['assigned_agent_name'] ?: ($ticket['assigned_group_names'] ?: '—')) ?></td>
-                        <td data-sort-value="<?= (int) strtotime($ticket['last_activity_at']) ?>"><?= e(date('M j, Y g:i A', strtotime($ticket['last_activity_at']))) ?></td>
+                        <td data-sort-value="<?= db_time($ticket['last_activity_at'])->getTimestamp() ?>"><?= e(format_db_time($ticket['last_activity_at'])) ?></td>
                     </tr>
                 <?php endforeach; ?>
             </tbody>

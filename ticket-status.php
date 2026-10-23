@@ -77,7 +77,7 @@ require __DIR__ . '/includes/header.php';
             <div class="card-body p-4">
                 <h1 class="h4"><?= e($ticket['subject']) ?></h1>
                 <p class="text-body-secondary mb-4">
-                    Submitted <?= e(date('M j, Y g:i A', strtotime($ticket['created_at']))) ?> &middot; <?= e($ticket['category']) ?>
+                    Submitted <?= e(format_db_time($ticket['created_at'])) ?> &middot; <?= e($ticket['category']) ?>
                 </p>
                 <p style="white-space: pre-wrap;"><?= e($ticket['description']) ?></p>
                 <?php if (!empty($ticket['attachment_path'])): ?>
@@ -101,7 +101,7 @@ require __DIR__ . '/includes/header.php';
                         <div class="border-start border-primary border-3 bg-body-tertiary rounded p-3 mb-3">
                             <div class="d-flex justify-content-between align-items-start mb-1 gap-2">
                                 <span class="fw-semibold"><?= e($comment['author_name'] ?? 'You') ?></span>
-                                <small class="text-body-secondary text-nowrap"><?= e(date('M j, Y g:i A', strtotime($comment['created_at']))) ?></small>
+                                <small class="text-body-secondary text-nowrap"><?= e(format_db_time($comment['created_at'])) ?></small>
                             </div>
                             <p class="mb-0" style="white-space: pre-wrap;"><?= e($comment['body']) ?></p>
                             <?php if ($attachments): ?>

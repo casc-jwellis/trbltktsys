@@ -17,6 +17,13 @@ function db(): PDO
                 PDO::ATTR_EMULATE_PREPARES   => false,
             ]
         );
+
+        // Every timestamp column (created_at, viewed_at, ...) is a MySQL
+        // TIMESTAMP, which stores an exact moment but reads and writes it in
+        // the session's time zone. Pin that to UTC so what comes back never
+        // depends on how the database server happens to be configured; PHP
+        // converts to the site's timezone for display (see db_time()).
+        $pdo->exec("SET time_zone = '+00:00'");
     }
 
     return $pdo;

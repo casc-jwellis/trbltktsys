@@ -343,7 +343,7 @@ require __DIR__ . '/includes/header.php';
             <?php $createdByName = ticket_created_by_name($ticket); ?>
             <span><?= $createdByName !== null ? 'Requested by' : 'Submitted by' ?> <?= e($ticket['requester_name']) ?></span>
             <button type="button" class="btn btn-link btn-sm p-0 align-baseline text-decoration-none text-body-secondary" data-bs-toggle="modal" data-bs-target="#requesterInfoModal">(User Information)</button>
-            <span>on <?= e(date('M j, Y g:i A', strtotime($ticket['created_at']))) ?></span>
+            <span>on <?= e(format_db_time($ticket['created_at'])) ?></span>
             <?php if ($createdByName !== null): ?>
                 <span class="badge text-bg-success">Created by agent: <?= e($createdByName) ?></span>
             <?php endif; ?>
@@ -384,7 +384,7 @@ require __DIR__ . '/includes/header.php';
                 <div class="border-start border-<?= $threadColor ?> border-3 <?= $isInternal ? 'bg-warning-subtle' : 'bg-body-tertiary' ?> rounded p-3 mb-3">
                     <div class="d-flex justify-content-between align-items-start mb-1 gap-2">
                         <span class="fw-semibold"><?= e($authorName) ?> <span class="badge text-bg-<?= $threadColor ?>"><?= $tagLabel ?></span></span>
-                        <small class="text-body-secondary text-nowrap"><?= e(date('M j, Y g:i A', strtotime($comment['created_at']))) ?></small>
+                        <small class="text-body-secondary text-nowrap"><?= e(format_db_time($comment['created_at'])) ?></small>
                     </div>
                     <p class="mb-0" style="white-space: pre-wrap;"><?= e($comment['body']) ?></p>
                     <?php if ($attachments): ?>

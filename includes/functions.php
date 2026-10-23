@@ -210,6 +210,24 @@ function mark_ticket_viewed(int $ticketId): void
     db()->prepare('UPDATE tickets SET viewed_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$ticketId]);
 }
 
+/**
+ * A database timestamp as a DateTimeImmutable in the site's timezone. The
+ * connection is pinned to UTC (see db()), so a TIMESTAMP value is read as UTC
+ * and converted -- strtotime()/date() alone would read it as the site's
+ * timezone and show the wrong hour.
+ */
+function db_time(string $timestamp): DateTimeImmutable
+{
+    return (new DateTimeImmutable($timestamp, new DateTimeZone('UTC')))
+        ->setTimezone(new DateTimeZone(date_default_timezone_get()));
+}
+
+/** A database timestamp formatted for display, e.g. "Oct 23, 2026 1:24 PM", in the site's timezone. */
+function format_db_time(string $timestamp): string
+{
+    return db_time($timestamp)->format('M j, Y g:i A');
+}
+
 /** Whether $ticket has submitter activity since it was last viewed by an agent. */
 function ticket_is_new(array $ticket): bool
 {
@@ -219,7 +237,7 @@ function ticket_is_new(array $ticket): bool
     if (empty($ticket['viewed_at'])) {
         return true;
     }
-    return strtotime($ticket['last_submitter_activity_at']) > strtotime($ticket['viewed_at']);
+    return db_time($ticket['last_submitter_activity_at'])->getTimestamp() > db_time($ticket['viewed_at'])->getTimestamp();
 }
 
 /** A hash of everything the ticket queue displays, so the queue page can tell cheaply whether it has changed (assets/js/queue-auto-refresh.js). */
