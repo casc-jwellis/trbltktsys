@@ -363,7 +363,7 @@ require __DIR__ . '/includes/header.php';
     <div class="card-header">Conversation</div>
     <div class="card-body p-4">
         <?php if (!ticket_comments_supported()): ?>
-            <div class="alert alert-warning small mb-0">Responses and internal notes are unavailable until an administrator visits <a href="migrate.php">migrate.php</a> to update the database.</div>
+            <div class="alert alert-warning small mb-0">Responses and internal notes are unavailable until an administrator runs the pending database updates (Admin Settings, Database tab).</div>
         <?php elseif (!$comments): ?>
             <p class="text-body-secondary mb-0">No responses yet.</p>
         <?php else: ?>
@@ -406,7 +406,7 @@ require __DIR__ . '/includes/header.php';
     <div class="card-header">Respond &amp; Manage Ticket</div>
     <div class="card-body p-4">
         <?php if (!ticket_assignments_supported()): ?>
-            <div class="alert alert-warning small">Ticket assignment is unavailable until an administrator visits <a href="migrate.php">migrate.php</a> to update the database.</div>
+            <div class="alert alert-warning small">Ticket assignment is unavailable until an administrator runs the pending database updates (Admin Settings, Database tab).</div>
         <?php endif; ?>
         <form method="post" id="manageTicketForm" enctype="multipart/form-data" data-loading-text="Saving...">
             <?= csrf_field() ?>

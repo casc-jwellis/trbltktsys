@@ -308,7 +308,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $activeTab = 'categories';
     } elseif ($action === 'create_canned_response') {
         if (!canned_responses_supported()) {
-            flash('error', 'The database is out of date. Visit migrate.php to enable canned responses.');
+            flash('error', 'The database is out of date. Run the pending updates on the Database tab to enable canned responses.');
         } else {
             $title = trim((string) ($_POST['title'] ?? ''));
             $body = trim((string) ($_POST['body'] ?? ''));
@@ -326,7 +326,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $activeTab = 'responses';
     } elseif ($action === 'update_canned_response') {
         if (!canned_responses_supported()) {
-            flash('error', 'The database is out of date. Visit migrate.php to enable canned responses.');
+            flash('error', 'The database is out of date. Run the pending updates on the Database tab to enable canned responses.');
         } else {
             $responseId = (int) ($_POST['response_id'] ?? 0);
             $title = trim((string) ($_POST['title'] ?? ''));
@@ -352,7 +352,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $activeTab = 'responses';
     } elseif ($action === 'update_theme_settings') {
         if (!theme_settings_supported()) {
-            flash('error', 'The database is out of date. Visit migrate.php to enable theme settings.');
+            flash('error', 'The database is out of date. Run the pending updates on the Database tab to enable theme settings.');
         } else {
             // Control characters (newlines especially) have no place in a name
             // that ends up in page titles and email headers.
@@ -377,7 +377,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $activeTab = 'theme';
     } elseif ($action === 'update_smtp_settings') {
         if (!smtp_settings_supported()) {
-            flash('error', 'The database is out of date. Visit migrate.php to enable email settings.');
+            flash('error', 'The database is out of date. Run the pending updates on the Database tab to enable email settings.');
         } else {
             $host = trim((string) ($_POST['host'] ?? ''));
             $port = (int) ($_POST['port'] ?? 0);
@@ -433,7 +433,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $activeTab = 'email';
     } elseif ($action === 'update_imap_settings') {
         if (!imap_settings_supported()) {
-            flash('error', 'The database is out of date. Visit migrate.php to enable inbound mail.');
+            flash('error', 'The database is out of date. Run the pending updates on the Database tab to enable inbound mail.');
         } else {
             $enabled = isset($_POST['imap_enabled']);
             $host = trim((string) ($_POST['imap_host'] ?? ''));
@@ -488,6 +488,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('error', 'Could not connect: ' . $e->getMessage());
         }
         $activeTab = 'email';
+    } elseif ($action === 'run_migrations') {
+        $appliedMigrations = [];
+        try {
+            foreach (pending_migrations() as $migration) {
+                run_migration($migration['file']);
+                $appliedMigrations[] = $migration['label'];
+            }
+            flash('success', $appliedMigrations
+                ? 'Database updated. Applied: ' . implode('; ', $appliedMigrations) . '.'
+                : 'The database is already up to date.');
+        } catch (Throwable $e) {
+            flash('error', 'Migration failed: ' . $e->getMessage()
+                . ($appliedMigrations ? ' (Applied before the failure: ' . implode('; ', $appliedMigrations) . '.)' : ''));
+        }
+        $activeTab = 'database';
     } elseif ($action === 'flush_tickets') {
         $confirmation = trim((string) ($_POST['confirmation'] ?? ''));
 
@@ -535,6 +550,7 @@ $categories = all_categories_with_counts();
 $cannedResponses = all_canned_responses();
 $smtpSettings = get_smtp_settings();
 $imapSettings = get_imap_settings();
+$pendingMigrations = pending_migrations();
 
 $pageTitle = 'Admin Settings';
 require __DIR__ . '/includes/header.php';
@@ -544,6 +560,14 @@ require __DIR__ . '/includes/header.php';
     <h1 class="h3 mb-1">Admin Settings</h1>
     <p class="text-body-secondary mb-0">Manage helpdesk staff accounts, groups, categories, and canned responses.</p>
 </div>
+
+<?php if ($pendingMigrations && $activeTab !== 'database'): ?>
+    <div class="alert alert-warning">
+        <?= count($pendingMigrations) ?> database update<?= count($pendingMigrations) === 1 ? ' is' : 's are' ?> pending.
+        Some features stay unavailable until they're applied &mdash;
+        <a href="admin-settings.php?tab=database" class="alert-link">open the Database tab</a> to run them.
+    </div>
+<?php endif; ?>
 
 <ul class="nav nav-tabs mb-4">
     <li class="nav-item">

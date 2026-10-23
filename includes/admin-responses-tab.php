@@ -3,7 +3,7 @@
 ?>
 
 <?php if (!canned_responses_supported()): ?>
-    <div class="alert alert-warning">The database is out of date — canned responses are unavailable until an administrator visits <a href="migrate.php">migrate.php</a>.</div>
+    <div class="alert alert-warning">The database is out of date — canned responses are unavailable until an administrator runs the pending updates on the <a href="admin-settings.php?tab=database">Database tab</a>.</div>
 <?php else: ?>
 
 <div class="card mb-4">

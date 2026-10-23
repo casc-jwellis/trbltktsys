@@ -144,7 +144,7 @@ require __DIR__ . '/includes/header.php';
 ?>
 
 <?php if (!$assignmentsSupported): ?>
-    <div class="alert alert-warning">The database is out of date — ticket assignment info is hidden until an administrator visits <a href="migrate.php">migrate.php</a>.</div>
+    <div class="alert alert-warning">The database is out of date — ticket assignment info is hidden until an administrator runs the pending database updates (Admin Settings, Database tab).</div>
 <?php endif; ?>
 
 <div class="d-flex justify-content-between align-items-end mb-4 flex-wrap gap-3">

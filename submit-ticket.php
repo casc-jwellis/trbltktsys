@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
         $ticketSql = 'INSERT INTO tickets (requester_name, requester_email, subject, description, category, priority, status, attachment_path';
 
-        // Column may not exist yet on a database that's pending migrate.php --
+        // Column may not exist yet on a database with pending migrations --
         // degrade gracefully rather than fail the whole ticket submission.
         $publicToken = null;
         if (ticket_public_tokens_supported()) {

@@ -92,7 +92,7 @@ function require_login(): void
         // Schema is behind what this code expects (e.g. a pending migration
         // after a git pull). Fail closed rather than crash every page.
         logout();
-        flash('error', 'The database is out of date. An administrator should visit migrate.php to update it.');
+        flash('error', 'The database is out of date. An administrator should run the pending database updates (Admin Settings, Database tab).');
         header('Location: login.php');
         exit;
     }

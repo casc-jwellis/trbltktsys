@@ -27,8 +27,8 @@ A simple PHP trouble ticket system.
   public token before accepting it, reopens a Resolved/Closed ticket the same way a web reply
   does, and stores any attachments alongside the new comment. See the Email tab in Admin Settings
   to configure it.
-- **Database migrations** (`migrate.php`) — applies any pending schema changes after a `git pull`,
-  from the browser.
+- **Database migrations** (Admin Settings → Database tab) — applies any pending schema changes
+  after a `git pull`, from the browser.
 
 ## linux setup
 ```bash
@@ -92,11 +92,14 @@ Any page will redirect you into `install.php` until setup is finished. The insta
 
 Once an admin account exists, `install.php` locks itself out (it redirects to `login.php`) so it can't be used to re-run setup or create more accounts later. Additional staff accounts — including the Administrator flag and groups — are managed from the **Admin Settings** panel (Administrator-only). There's no CLI for creating accounts; the web installer and Admin Settings panel are the only ways in.
 
-Pulled new code onto an existing install? Open **`migrate.php`** in a browser — it detects any schema
-changes that haven't been applied yet (new columns/tables from `migrations/*.sql`) and applies them
-with one click. No `mysql` client needed. It's unauthenticated (like `install.php`) since a pending
-migration can otherwise break login, but it only ever *adds* columns/tables — it never touches data.
-Once nothing is pending it just links to the login page.
+Pulled new code onto an existing install? Log in as an administrator and open **Admin Settings →
+Database**. It detects any schema changes that haven't been applied yet (new columns/tables from
+`migrations/*.sql`) and applies them with one click; a banner on every Admin Settings tab points
+there while updates are pending. No `mysql` client needed. Migrations only *add or widen*
+columns/tables — they never delete data — but take a database backup first, since a schema change
+can't be undone. (`migrate.php` still exists, but only redirects there.) Pages that depend on a new
+column are written to keep working, with that feature unavailable, until the update runs, so login
+isn't blocked by a pending migration.
 
 ## Stack
 

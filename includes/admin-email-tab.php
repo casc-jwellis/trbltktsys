@@ -8,7 +8,7 @@ $myEmail = array_column($users, 'email', 'id')[current_user_id()] ?? '';
 ?>
 
 <?php if (!smtp_settings_supported()): ?>
-    <div class="alert alert-warning">The database is out of date — email settings are unavailable until an administrator visits <a href="migrate.php">migrate.php</a>.</div>
+    <div class="alert alert-warning">The database is out of date — email settings are unavailable until an administrator runs the pending updates on the <a href="admin-settings.php?tab=database">Database tab</a>.</div>
 <?php else: ?>
 
 <div class="card mb-4">
@@ -85,7 +85,7 @@ $myEmail = array_column($users, 'email', 'id')[current_user_id()] ?? '';
 <?php endif; ?>
 
 <?php if (!imap_settings_supported()): ?>
-    <div class="alert alert-warning">The database is out of date — inbound mail settings are unavailable until an administrator visits <a href="migrate.php">migrate.php</a>.</div>
+    <div class="alert alert-warning">The database is out of date — inbound mail settings are unavailable until an administrator runs the pending updates on the <a href="admin-settings.php?tab=database">Database tab</a>.</div>
 <?php else: ?>
 
 <div class="card mb-4">

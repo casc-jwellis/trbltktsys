@@ -118,8 +118,8 @@ function create_ticket_submit(array $form, array $files): array
     ];
     $ticketSql = 'INSERT INTO tickets (requester_name, requester_email, subject, description, category, priority, status, attachment_path';
 
-    // Each of these columns may not exist yet on a database that's pending
-    // migrate.php -- degrade gracefully rather than fail.
+    // Each of these columns may not exist yet on a database with pending
+    // migrations -- degrade gracefully rather than fail.
     if (ticket_assigned_agent_supported()) {
         $ticketSql .= ', assigned_agent_id';
         $ticketValues[] = $assignedAgentId;

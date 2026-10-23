@@ -4,7 +4,7 @@ $configuredName = configured_app_name();
 ?>
 
 <?php if (!theme_settings_supported()): ?>
-    <div class="alert alert-warning">The database is out of date — theme settings are unavailable until an administrator visits <a href="migrate.php">migrate.php</a>.</div>
+    <div class="alert alert-warning">The database is out of date — theme settings are unavailable until an administrator runs the pending updates on the <a href="admin-settings.php?tab=database">Database tab</a>.</div>
 <?php else: ?>
 
 <form method="post">

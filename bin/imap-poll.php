@@ -23,7 +23,7 @@ function timestamped(string $message): string
 }
 
 if (!imap_settings_supported()) {
-    fwrite(STDERR, timestamped("IMAP settings table not found -- visit migrate.php in a browser first.\n"));
+    fwrite(STDERR, timestamped("IMAP settings table not found -- run the pending database updates in Admin Settings (Database tab) first.\n"));
     exit(1);
 }
 

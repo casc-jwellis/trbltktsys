@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $error = match ($result) {
             'disabled'     => 'This account has been disabled. Contact an administrator.',
-            'schema-error' => 'The database is out of date. An administrator should visit migrate.php to update it.',
+            'schema-error' => 'The database is out of date. An administrator should run the pending database updates (Admin Settings, Database tab).',
             default        => 'Invalid username or password.',
         };
     }
