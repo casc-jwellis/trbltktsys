@@ -30,6 +30,17 @@ function column_exists(string $table, string $column): bool
     return (int) $stmt->fetchColumn() > 0;
 }
 
+/** A character column's declared length, or 0 if the column doesn't exist or isn't a character type. */
+function column_length(string $table, string $column): int
+{
+    $stmt = db()->prepare(
+        'SELECT CHARACTER_MAXIMUM_LENGTH FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
+    );
+    $stmt->execute([$table, $column]);
+    return (int) $stmt->fetchColumn();
+}
+
 function table_exists(string $table): bool
 {
     $stmt = db()->prepare(
@@ -163,6 +174,11 @@ function available_migrations(): array
             'file'    => '022_theme_settings.sql',
             'label'   => 'Site name and theme color settings',
             'applied' => fn (): bool => table_exists('theme_settings'),
+        ],
+        [
+            'file'    => '023_ticket_category_length.sql',
+            'label'   => 'Widen the ticket category column to match category names',
+            'applied' => fn (): bool => column_length('tickets', 'category') >= 50,
         ],
     ];
 }

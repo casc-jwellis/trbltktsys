@@ -47,6 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!in_array($old['priority'], TICKET_PRIORITIES, true)) {
         $errors[] = 'Please choose a valid priority.';
     }
+    array_push($errors, ...ticket_field_length_errors($old['requester_name'], $old['requester_email'], $old['subject'], $old['description']));
 
     $attachmentPath = null;
     if (!$errors) {
@@ -148,11 +149,11 @@ require __DIR__ . '/includes/header.php';
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label required" for="requester_name">Your Name</label>
-                        <input class="form-control" id="requester_name" name="requester_name" required value="<?= e($old['requester_name']) ?>">
+                        <input class="form-control" id="requester_name" name="requester_name" required maxlength="100" value="<?= e($old['requester_name']) ?>">
                     </div>
                     <div class="col-md-6">
                         <label class="form-label required" for="requester_email">Email Address</label>
-                        <input type="email" class="form-control" id="requester_email" name="requester_email" required value="<?= e($old['requester_email']) ?>">
+                        <input type="email" class="form-control" id="requester_email" name="requester_email" required maxlength="150" value="<?= e($old['requester_email']) ?>">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label required" for="requester_phone">Phone</label>
@@ -179,7 +180,7 @@ require __DIR__ . '/includes/header.php';
                     </div>
                     <div class="col-12">
                         <label class="form-label required" for="subject">Subject</label>
-                        <input class="form-control" id="subject" name="subject" required value="<?= e($old['subject']) ?>">
+                        <input class="form-control" id="subject" name="subject" required maxlength="200" value="<?= e($old['subject']) ?>">
                     </div>
                     <div class="col-12">
                         <label class="form-label required" for="description">Describe the Issue</label>

@@ -55,7 +55,7 @@ CREATE TABLE tickets (
     requester_email  VARCHAR(150) NOT NULL,
     subject          VARCHAR(200) NOT NULL,
     description      TEXT NOT NULL,
-    category         VARCHAR(30) NOT NULL DEFAULT 'General',
+    category         VARCHAR(50) NOT NULL DEFAULT 'General',
     priority         VARCHAR(10) NOT NULL DEFAULT 'Medium',
     status           VARCHAR(20) NOT NULL DEFAULT 'Open',
     attachment_path  VARCHAR(255) NULL,

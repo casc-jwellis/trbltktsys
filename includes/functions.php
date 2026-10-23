@@ -541,6 +541,31 @@ function store_ticket_attachment(array $file): ?string
     return 'uploads/' . $filename;
 }
 
+/**
+ * Errors for any ticket field longer than its database column. Without this a
+ * too-long value reaches the INSERT, MySQL rejects it ("Data too long"), and
+ * the visitor gets a bare 500 instead of a message. Lengths mirror schema.sql
+ * (tickets.subject VARCHAR(200), requester name 100, email 150, description
+ * TEXT = 65,535 bytes); VARCHARs count characters, TEXT counts bytes.
+ */
+function ticket_field_length_errors(string $name, string $email, string $subject, string $description): array
+{
+    $errors = [];
+    if (mb_strlen($name) > 100) {
+        $errors[] = 'The name is too long (100 characters max).';
+    }
+    if (mb_strlen($email) > 150) {
+        $errors[] = 'The email address is too long (150 characters max).';
+    }
+    if (mb_strlen($subject) > 200) {
+        $errors[] = 'The subject is too long (200 characters max).';
+    }
+    if (strlen($description) > 65535) {
+        $errors[] = 'The description is too long (about 65,000 characters max).';
+    }
+    return $errors;
+}
+
 // Files attached to a ticket comment -- by an agent on the ticket page, or by
 // a submitter's emailed reply (includes/imap.php uses the same limits).
 const COMMENT_ATTACHMENT_MAX_BYTES = 15 * 1024 * 1024;

@@ -34,11 +34,11 @@ $createAgents = ticket_assigned_agent_supported() ? active_agents() : [];
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label required" for="new_requester_name">Requester Name</label>
-                            <input class="form-control" id="new_requester_name" name="requester_name" required value="<?= e($createForm['requester_name']) ?>">
+                            <input class="form-control" id="new_requester_name" name="requester_name" required maxlength="100" value="<?= e($createForm['requester_name']) ?>">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label required" for="new_requester_email">Requester Email</label>
-                            <input type="email" class="form-control" id="new_requester_email" name="requester_email" required value="<?= e($createForm['requester_email']) ?>">
+                            <input type="email" class="form-control" id="new_requester_email" name="requester_email" required maxlength="150" value="<?= e($createForm['requester_email']) ?>">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label" for="new_requester_phone">Requester Phone</label>
@@ -73,7 +73,7 @@ $createAgents = ticket_assigned_agent_supported() ? active_agents() : [];
                         </div>
                         <div class="col-12">
                             <label class="form-label required" for="new_subject">Subject</label>
-                            <input class="form-control" id="new_subject" name="subject" required value="<?= e($createForm['subject']) ?>">
+                            <input class="form-control" id="new_subject" name="subject" required maxlength="200" value="<?= e($createForm['subject']) ?>">
                         </div>
                         <div class="col-12">
                             <label class="form-label required" for="new_description">Describe the Issue</label>

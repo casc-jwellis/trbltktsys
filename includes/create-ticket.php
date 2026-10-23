@@ -74,6 +74,7 @@ function create_ticket_submit(array $form, array $files): array
     if (!in_array($form['status'], TICKET_STATUSES, true)) {
         $errors[] = 'Please choose a valid status.';
     }
+    array_push($errors, ...ticket_field_length_errors($form['requester_name'], $form['requester_email'], $form['subject'], $form['description']));
 
     $assignedAgentId = null;
     if (ticket_assigned_agent_supported()
