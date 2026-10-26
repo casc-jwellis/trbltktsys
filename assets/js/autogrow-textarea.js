@@ -5,6 +5,9 @@
  */
 (function () {
     function fit(textarea) {
+        if (!textarea.offsetHeight) {
+            return;
+        }
         textarea.style.height = 'auto';
         var borders = textarea.offsetHeight - textarea.clientHeight;
         textarea.style.height = (textarea.scrollHeight + borders) + 'px';

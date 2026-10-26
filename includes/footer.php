@@ -18,6 +18,7 @@
 <script src="<?= asset_url('assets/js/modal-autoshow.js') ?>"></script>
 <script src="<?= asset_url('assets/js/queue-auto-refresh.js') ?>"></script>
 <script src="<?= asset_url('assets/js/autogrow-textarea.js') ?>"></script>
+<script src="<?= asset_url('assets/js/response-modal.js') ?>"></script>
 <script src="<?= asset_url('assets/js/theme-preview.js') ?>"></script>
 </body>
 </html>

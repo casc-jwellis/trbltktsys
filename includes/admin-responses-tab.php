@@ -6,27 +6,8 @@
     <div class="alert alert-warning">The database is out of date — canned responses are unavailable until an administrator runs the pending updates on the <a href="admin-settings.php?tab=database">Database tab</a>.</div>
 <?php else: ?>
 
-<div class="card mb-4">
-    <div class="card-header">New Canned Response</div>
-    <div class="card-body p-4">
-        <form method="post">
-            <?= csrf_field() ?>
-            <input type="hidden" name="action" value="create_canned_response">
-            <div class="row g-3">
-                <div class="col-12">
-                    <label class="form-label" for="response_title">Title</label>
-                    <input class="form-control" id="response_title" name="title" required maxlength="100" placeholder="e.g. Password Reset Instructions">
-                </div>
-                <div class="col-12">
-                    <label class="form-label" for="response_body">Response Text</label>
-                    <textarea class="form-control" id="response_body" name="body" rows="6" data-autogrow required></textarea>
-                </div>
-            </div>
-            <div class="mt-3">
-                <button type="submit" class="btn btn-primary">Create Response</button>
-            </div>
-        </form>
-    </div>
+<div class="d-flex justify-content-end mb-3">
+    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#responseModal">+ New Response</button>
 </div>
 
 <div class="card">
@@ -50,7 +31,10 @@
                         <td class="text-end">
                             <div class="d-inline-flex gap-1">
                                 <button type="button" class="btn btn-sm btn-outline-secondary"
-                                        data-bs-toggle="modal" data-bs-target="#editResponseModal<?= (int) $response['id'] ?>">
+                                        data-bs-toggle="modal" data-bs-target="#responseModal"
+                                        data-response-id="<?= (int) $response['id'] ?>"
+                                        data-response-title="<?= e($response['title']) ?>"
+                                        data-response-body="<?= e($response['body']) ?>">
                                     Edit
                                 </button>
                                 <form method="post" class="d-inline" onsubmit="return confirm('Remove this canned response? This cannot be undone.');">
@@ -68,36 +52,35 @@
     </div>
 </div>
 
-<?php foreach ($cannedResponses as $response): ?>
-    <div class="modal fade" id="editResponseModal<?= (int) $response['id'] ?>" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form method="post">
-                    <?= csrf_field() ?>
-                    <input type="hidden" name="action" value="update_canned_response">
-                    <input type="hidden" name="response_id" value="<?= (int) $response['id'] ?>">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Edit Canned Response</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<?php // One modal serves both "+ New Response" and every row's Edit button; assets/js/response-modal.js switches it between the two. ?>
+<div class="modal fade" id="responseModal" tabindex="-1" aria-labelledby="responseModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post">
+                <?= csrf_field() ?>
+                <input type="hidden" name="action" value="create_canned_response">
+                <input type="hidden" name="response_id" value="">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="responseModalLabel">New Canned Response</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="response_title">Title</label>
+                        <input class="form-control" id="response_title" name="title" required maxlength="100" placeholder="e.g. Password Reset Instructions">
                     </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label" for="edit_response_title_<?= (int) $response['id'] ?>">Title</label>
-                            <input class="form-control" id="edit_response_title_<?= (int) $response['id'] ?>" name="title" required maxlength="100" value="<?= e($response['title']) ?>">
-                        </div>
-                        <div class="mb-0">
-                            <label class="form-label" for="edit_response_body_<?= (int) $response['id'] ?>">Response Text</label>
-                            <textarea class="form-control" id="edit_response_body_<?= (int) $response['id'] ?>" name="body" rows="6" data-autogrow required><?= e($response['body']) ?></textarea>
-                        </div>
+                    <div class="mb-0">
+                        <label class="form-label" for="response_body">Response Text</label>
+                        <textarea class="form-control" id="response_body" name="body" rows="6" data-autogrow required></textarea>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save Changes</button>
-                    </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-response-submit>Create Response</button>
+                </div>
+            </form>
         </div>
     </div>
-<?php endforeach; ?>
+</div>
 
 <?php endif; ?>
