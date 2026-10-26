@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
         textarea.value = select.value;
+        // Programmatic changes don't fire "input", so tell autogrow-textarea.js to resize.
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
         select.value = '';
         textarea.focus();
     });

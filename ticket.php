@@ -424,7 +424,7 @@ require __DIR__ . '/includes/header.php';
             <?php endif; ?>
             <div class="mb-3">
                 <label class="form-label" for="response">Response to Submitter</label>
-                <textarea class="form-control" id="response" name="response" rows="4" placeholder="Type a reply the submitter will see..."></textarea>
+                <textarea class="form-control" id="response" name="response" rows="6" data-autogrow placeholder="Type a reply the submitter will see..."></textarea>
             </div>
             <?php if (ticket_comments_supported() && ticket_comment_attachments_supported()): ?>
                 <div class="mb-3">
