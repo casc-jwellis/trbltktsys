@@ -13,13 +13,13 @@
             <?= csrf_field() ?>
             <input type="hidden" name="action" value="create_canned_response">
             <div class="row g-3">
-                <div class="col-md-4">
+                <div class="col-12">
                     <label class="form-label" for="response_title">Title</label>
                     <input class="form-control" id="response_title" name="title" required maxlength="100" placeholder="e.g. Password Reset Instructions">
                 </div>
-                <div class="col-md-8">
+                <div class="col-12">
                     <label class="form-label" for="response_body">Response Text</label>
-                    <textarea class="form-control" id="response_body" name="body" rows="3" required></textarea>
+                    <textarea class="form-control" id="response_body" name="body" rows="6" data-autogrow required></textarea>
                 </div>
             </div>
             <div class="mt-3">
@@ -87,7 +87,7 @@
                         </div>
                         <div class="mb-0">
                             <label class="form-label" for="edit_response_body_<?= (int) $response['id'] ?>">Response Text</label>
-                            <textarea class="form-control" id="edit_response_body_<?= (int) $response['id'] ?>" name="body" rows="6" required><?= e($response['body']) ?></textarea>
+                            <textarea class="form-control" id="edit_response_body_<?= (int) $response['id'] ?>" name="body" rows="6" data-autogrow required><?= e($response['body']) ?></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
