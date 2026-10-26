@@ -279,3 +279,10 @@ body {
     overflow-y: auto;
     box-shadow: 0 8px 20px rgba(var(--shadow-color), .12);
 }
+
+/* A modal as wide as the page's cards: Bootstrap's .container max-widths minus its .75rem side padding. */
+@media (min-width: 576px) { .modal-dialog.modal-container-width { --bs-modal-width: 516px; } }
+@media (min-width: 768px) { .modal-dialog.modal-container-width { --bs-modal-width: 696px; } }
+@media (min-width: 992px) { .modal-dialog.modal-container-width { --bs-modal-width: 936px; } }
+@media (min-width: 1200px) { .modal-dialog.modal-container-width { --bs-modal-width: 1116px; } }
+@media (min-width: 1400px) { .modal-dialog.modal-container-width { --bs-modal-width: 1296px; } }

@@ -54,7 +54,7 @@
 
 <?php // One modal serves both "+ New Response" and every row's Edit button; assets/js/response-modal.js switches it between the two. ?>
 <div class="modal fade" id="responseModal" tabindex="-1" aria-labelledby="responseModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-container-width">
         <div class="modal-content">
             <form method="post">
                 <?= csrf_field() ?>
