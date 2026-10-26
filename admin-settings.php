@@ -204,15 +204,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'create_group') {
         $name = trim((string) ($_POST['name'] ?? ''));
         $description = trim((string) ($_POST['description'] ?? ''));
+        $categoryIds = valid_ids_from_post($_POST['categories'] ?? [], $allCategories);
 
         if ($name === '' || strlen($name) > 60) {
             flash('error', 'Please enter a group name (up to 60 characters).');
         } else {
             try {
+                db()->beginTransaction();
+
                 $stmt = db()->prepare('INSERT INTO agent_groups (name, description) VALUES (?, ?)');
                 $stmt->execute([$name, $description !== '' ? $description : null]);
+                $groupId = (int) db()->lastInsertId();
+
+                $categoryStmt = db()->prepare('INSERT INTO group_categories (group_id, category_id) VALUES (?, ?)');
+                foreach ($categoryIds as $categoryId) {
+                    $categoryStmt->execute([$groupId, $categoryId]);
+                }
+
+                db()->commit();
                 flash('success', 'Created group "' . $name . '".');
             } catch (PDOException $e) {
+                db()->rollBack();
                 flash('error', $e->getCode() === '23000'
                     ? 'A group with that name already exists.'
                     : 'Could not create the group.');

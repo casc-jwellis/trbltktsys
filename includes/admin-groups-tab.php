@@ -68,9 +68,30 @@
                         <label class="form-label" for="group_name">Group Name</label>
                         <input class="form-control" id="group_name" name="name" required maxlength="60" autofocus>
                     </div>
-                    <div class="mb-0">
+                    <div class="mb-3">
                         <label class="form-label" for="group_description">Description</label>
                         <textarea class="form-control" id="group_description" name="description" rows="2" maxlength="255"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label d-block">Categories</label>
+                        <?php if (!$allCategories): ?>
+                            <p class="text-body-secondary small mb-0">No categories yet — create one on the Categories tab.</p>
+                        <?php else: ?>
+                            <div class="assignment-picker">
+                                <div class="assignment-pills mb-2"></div>
+                                <input type="text" class="form-control form-control-sm assignment-search" placeholder="Search categories...">
+                                <div class="list-group assignment-dropdown"></div>
+                                <div class="assignment-options">
+                                    <?php foreach ($allCategories as $category): ?>
+                                        <div class="form-check assignment-option">
+                                            <input class="form-check-input" type="checkbox" name="categories[]"
+                                                   value="<?= (int) $category['id'] ?>" id="new_group_category_<?= (int) $category['id'] ?>">
+                                            <label class="form-check-label" for="new_group_category_<?= (int) $category['id'] ?>"><?= e($category['name']) ?></label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <div class="modal-footer">
