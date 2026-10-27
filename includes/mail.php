@@ -331,7 +331,7 @@ function email_shell(string $innerHtml, ?array $statusColors = null): string
         '</head>',
         '<body>',
         '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="canvas"><tr><td align="center" style="padding:28px 14px;">',
-        '<table role="presentation" width="600" cellpadding="0" cellspacing="0" class="card" style="max-width:600px;width:100%;border-radius:12px;">',
+        '<table role="presentation" width="760" cellpadding="0" cellspacing="0" class="card" style="max-width:760px;width:100%;border-radius:12px;">',
         '<tr><td style="background:#2d4f8f;height:6px;line-height:6px;font-size:0;border-radius:12px 12px 0 0;">&nbsp;</td></tr>',
         '<tr><td style="padding:24px 32px 0;"><div class="eyebrow" style="font-family:Arial,sans-serif;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">' . $eyebrow . '</div></td></tr>',
         $innerHtml,
