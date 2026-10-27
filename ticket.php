@@ -67,7 +67,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (string) ($_POST['action'] ?? '') =
         }
     }
 
-    echo json_encode(['ok' => true, 'mailError' => $mailError]);
+    // Finishing a ticket sends the agent back to the queue (the JS follows
+    // "redirect"); the flash carries the confirmation, and any email failure,
+    // over to that page since the "Saved" indicator here won't be seen.
+    $redirect = null;
+    if ($statusChanged && ticket_status_is_finished($status)) {
+        $redirect = 'dashboard.php';
+        flash($mailError !== null ? 'error' : 'success', $mailError !== null
+            ? 'Ticket #' . $id . ' marked ' . $status . ', but the notification email to the submitter failed to send: ' . $mailError
+            : 'Ticket #' . $id . ' marked ' . $status . '.');
+    }
+
+    echo json_encode(['ok' => true, 'mailError' => $mailError, 'redirect' => $redirect]);
     exit;
 }
 
@@ -232,6 +243,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // send_ticket_update_notification() needs the value the agent
                 // just saved, not the one $ticket was fetched with at the top
                 // of the request.
+                $statusChanged = $status !== $ticket['status'];
                 $ticket['status'] = $status;
                 $ticket['priority'] = $priority;
 
@@ -249,7 +261,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     flash('success', 'Ticket #' . $id . ' updated.');
                 }
-                header('Location: ticket.php?id=' . $id);
+                // Finishing a ticket sends the agent back to the queue; any
+                // other save stays on the ticket.
+                header('Location: ' . ($statusChanged && ticket_status_is_finished($status) ? 'dashboard.php' : 'ticket.php?id=' . $id));
                 exit;
             }
         }

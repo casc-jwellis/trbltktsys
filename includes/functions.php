@@ -3,6 +3,12 @@
 const TICKET_PRIORITIES = ['Low', 'Medium', 'High', 'Urgent'];
 const TICKET_STATUSES   = ['Open', 'In Progress', 'Resolved', 'Closed'];
 
+/** Resolved and Closed are the statuses that mean an agent is done with a ticket. */
+function ticket_status_is_finished(string $status): bool
+{
+    return in_array($status, ['Resolved', 'Closed'], true);
+}
+
 /** Categories are managed in the database (Admin Settings -> Categories). */
 function all_categories(): array
 {

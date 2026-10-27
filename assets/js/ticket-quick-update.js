@@ -54,6 +54,11 @@
                     setIndicator(data.error || 'Failed to save.', true);
                     return;
                 }
+                if (data.redirect) {
+                    // The ticket is Resolved or Closed -- back to the queue.
+                    window.location.href = data.redirect;
+                    return;
+                }
                 setIndicator(data.mailError ? 'Saved (email failed)' : 'Saved', !!data.mailError);
                 window.setTimeout(function () { setIndicator('', false); }, 3000);
                 if (formStatusSelect) {
