@@ -25,6 +25,18 @@ const TICKET_STATUS_EMAIL_COLORS = [
     'Closed'      => ['fg' => '#5b6472', 'bg' => '#e7e9ec', 'fgDark' => '#aeb4bd', 'bgDark' => '#252a31'],
 ];
 
+/**
+ * Light/dark pill colors for each ticket priority, shown on the agent
+ * "new ticket" email. Unlike the status badge these are emitted as fixed
+ * classes by email_shell(), since every email gets the same four rules.
+ */
+const TICKET_PRIORITY_EMAIL_COLORS = [
+    'Low'    => ['fg' => '#4b5563', 'bg' => '#e7e9ed', 'fgDark' => '#b6bcc6', 'bgDark' => '#2a2f37'],
+    'Medium' => ['fg' => '#1d5fb0', 'bg' => '#dfeaf9', 'fgDark' => '#8fb8ee', 'bgDark' => '#1c2c42'],
+    'High'   => ['fg' => '#93600a', 'bg' => '#f7e8c2', 'fgDark' => '#e3b95c', 'bgDark' => '#3a2f14'],
+    'Urgent' => ['fg' => '#b42318', 'bg' => '#fbdcdc', 'fgDark' => '#f19a94', 'bgDark' => '#40191a'],
+];
+
 /** Whether the smtp_settings table exists yet (migration 013). */
 function smtp_settings_supported(): bool
 {
@@ -248,6 +260,14 @@ function email_shell(string $innerHtml, ?array $statusColors = null): string
 
     $eyebrow = e(app_name());
 
+    $priorityCss = '';
+    $priorityDarkCss = '';
+    foreach (TICKET_PRIORITY_EMAIL_COLORS as $priorityName => $c) {
+        $class = '.pill-' . strtolower($priorityName);
+        $priorityCss .= $class . '{background:' . $c['bg'] . ';color:' . $c['fg'] . ';}' . "\n";
+        $priorityDarkCss .= $class . '{background:' . $c['bgDark'] . ';color:' . $c['fgDark'] . ';}' . "\n";
+    }
+
     $styleLines = [
         'body{margin:0;font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;}',
         '.canvas{background:#eef1f6;}',
@@ -265,6 +285,12 @@ function email_shell(string $innerHtml, ?array $statusColors = null): string
         '.link-fallback{color:#98a1ad;}',
         '.footer-text{color:#98a1ad;}',
         '.footer-cell{border-top:1px solid #eceef1;}',
+        '.tk-card{border:1px solid #dde2e9;}',
+        '.tk-head{color:#1c2128;border-bottom:1px solid #e5e8ec;}',
+        '.tk-label{color:#6b7280;}',
+        '.pill-new{background:#dfeaf9;color:#1d5fb0;}',
+        '.pill-agent{background:#dcf0e4;color:#1f7a4d;}',
+        $priorityCss,
         $badgeCss,
         '@media (prefers-color-scheme: dark){',
         'body,.canvas{background:#12151a;}',
@@ -282,6 +308,12 @@ function email_shell(string $innerHtml, ?array $statusColors = null): string
         '.link-fallback{color:#7d848f;}',
         '.footer-text{color:#7d848f;}',
         '.footer-cell{border-color:#2b3038;}',
+        '.tk-card{border-color:#2b3038;}',
+        '.tk-head{color:#f0f2f4;border-color:#2b3038;}',
+        '.tk-label{color:#9aa3b0;}',
+        '.pill-new{background:#1c2c42;color:#8fb8ee;}',
+        '.pill-agent{background:#163526;color:#6cd39c;}',
+        $priorityDarkCss,
         '}',
     ];
     $style = implode("\n", $styleLines);
@@ -346,6 +378,47 @@ function ticket_email_meta_box(int $ticketId, string $subject, string $status, a
         . '</td></tr>';
 }
 
+/**
+ * The agent "new ticket" card, laid out like the Ticket card at the top of the
+ * ticket page: the ticket number and priority in a header row, then the
+ * subject, who submitted it and when, and the description. The page's
+ * dropdowns and buttons are static text here. $createdBy is the agent's name
+ * when they opened the ticket on a requester's behalf.
+ */
+function ticket_email_card(
+    int $ticketId,
+    string $subject,
+    string $priority,
+    string $requesterName,
+    string $createdAt,
+    string $description,
+    ?string $createdBy = null
+): string {
+    $pill = 'display:inline-block;font-size:11px;font-weight:700;letter-spacing:.03em;padding:4px 10px;border-radius:999px;font-family:Arial,sans-serif;text-transform:uppercase;vertical-align:middle;';
+    $byline = ($createdBy !== null ? 'Requested by ' : 'Submitted by ') . $requesterName . ' on ' . format_db_time($createdAt);
+    $agentBadge = $createdBy !== null
+        ? '<div style="margin-top:8px;"><span class="pill-agent" style="display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;font-family:Arial,sans-serif;">Created by agent: ' . e($createdBy) . '</span></div>'
+        : '';
+
+    return '<tr><td style="padding:18px 32px 0;">' . "\n"
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="tk-card" style="border-radius:12px;">' . "\n"
+        . '<tr><td class="tk-head" style="padding:12px 20px;font-size:15px;font-weight:600;">' . "\n"
+        . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>' . "\n"
+        . '<td style="font-size:15px;font-weight:600;">Ticket #' . $ticketId . ' <span class="pill-new" style="' . $pill . 'margin-left:6px;">New</span></td>' . "\n"
+        . '<td align="right" style="white-space:nowrap;"><span class="tk-label" style="font-size:12px;font-family:Arial,sans-serif;margin-right:6px;">Priority</span>'
+        . '<span class="pill-' . e(strtolower($priority)) . '" style="' . $pill . '">' . e($priority) . '</span></td>' . "\n"
+        . '</tr></table>' . "\n"
+        . '</td></tr>' . "\n"
+        . '<tr><td style="padding:20px;">' . "\n"
+        . '<h1 class="meta-subject" style="margin:0;font-size:20px;line-height:1.3;font-weight:600;">' . e($subject) . '</h1>' . "\n"
+        . '<p class="tk-label" style="margin:8px 0 0;font-size:14px;line-height:1.5;">' . e($byline) . '</p>' . "\n"
+        . $agentBadge . "\n"
+        . '<p class="callout-text" style="margin:16px 0 0;font-size:15px;line-height:1.55;white-space:pre-wrap;">' . e($description) . '</p>' . "\n"
+        . '</td></tr>' . "\n"
+        . '</table>' . "\n"
+        . '</td></tr>';
+}
+
 /** An accent-bordered quote block -- used for an agent's response and for a submitter's reply, quoted directly so the reader doesn't have to click through. */
 function ticket_email_callout(string $label, string $text): string
 {
@@ -390,16 +463,52 @@ function account_credentials_box(string $username, string $password): string
 }
 
 /**
- * Footer shown on every ticket email. Spells out that replying to the email
- * itself does nothing -- there's no inbound mail processing in this system,
- * so anyone tempted to hit "Reply" needs to be pointed at the link instead
- * of assuming it'll reach a person.
+ * Whether inbound email replies are being pulled in (Admin Settings, Email
+ * tab) -- the same enabled-and-configured test the IMAP poller applies. Read
+ * straight from imap_settings so the web pages that send mail don't have to
+ * load the IMAP client (includes/imap.php).
  */
-function ticket_email_footer(int $ticketId): string
+function inbound_email_replies_enabled(): bool
+{
+    static $result = null;
+    if ($result === null) {
+        $result = false;
+        try {
+            if (table_exists('imap_settings')) {
+                $row = db()->query('SELECT enabled, host, username FROM imap_settings WHERE id = 1')->fetch();
+                $result = $row && $row['enabled'] && $row['host'] !== '' && !empty($row['username']);
+            }
+        } catch (Throwable $e) {
+            error_log('Could not read IMAP settings for an email footer: ' . $e->getMessage());
+        }
+    }
+    return $result;
+}
+
+/**
+ * What the footer says about replying to the email itself. A reply is only
+ * turned into a ticket message when it comes from the ticket's submitter (see
+ * verify_ticket_reply_target()), so that's the only audience told they can
+ * reply -- and only while inbound mail is on. Agents are always pointed at the
+ * link instead.
+ */
+function ticket_email_reply_hint(bool $forAgent): string
+{
+    if ($forAgent) {
+        return 'Replying to this email will not update the ticket. Use the link above instead.';
+    }
+    if (inbound_email_replies_enabled()) {
+        return 'You can reply to this email to add a message to your ticket, or use the link above.';
+    }
+    return "This inbox is not monitored \u{2014} replying to this email will not reach anyone. Use the link above instead.";
+}
+
+/** Footer shown on every ticket email: which ticket it's about, and whether replying to it does anything. */
+function ticket_email_footer(int $ticketId, bool $forAgent = false): string
 {
     return '<tr><td class="footer-cell" style="padding:16px 32px 22px;">' . "\n"
         . '<p class="footer-text" style="margin:0;font-size:12px;font-family:Arial,sans-serif;line-height:1.5;">' . "\n"
-        . 'This message is about ticket #' . $ticketId . '. This inbox is not monitored &mdash; replying to this email will not reach anyone. Use the link above instead.' . "\n"
+        . 'This message is about ticket #' . $ticketId . '. ' . e(ticket_email_reply_hint($forAgent)) . "\n"
         . '</p></td></tr>';
 }
 
@@ -417,7 +526,8 @@ function ticket_email_plain(
     ?string $priority,
     ?array $callout,
     ?string $note,
-    string $url
+    string $url,
+    bool $forAgent = false
 ): string {
     $rule = str_repeat('-', 58);
     $lines = [];
@@ -449,7 +559,7 @@ function ticket_email_plain(
     $lines[] = 'View the full conversation or add a reply:';
     $lines[] = $url;
     $lines[] = '';
-    $lines[] = 'This inbox is not monitored -- replying to this email will not reach anyone.';
+    $lines[] = str_replace("\u{2014}", '--', ticket_email_reply_hint($forAgent));
 
     return implode("\n", $lines);
 }
@@ -513,32 +623,56 @@ function notify_ticket_agents(int $ticketId, string $subject, string $htmlBody, 
  * Sent to a ticket's assigned agents right after it's submitted. When an
  * agent opened it on a requester's behalf, $createdBy names them and
  * $excludeEmail (their own address) keeps them from being emailed about
- * their own ticket; $status is then whatever they chose, not always "Open".
+ * their own ticket.
  */
 function send_new_ticket_notification(
     int $ticketId,
     string $ticketSubject,
     string $priority,
     ?string $createdBy = null,
-    ?string $excludeEmail = null,
-    string $status = 'Open'
+    ?string $excludeEmail = null
 ): void {
     $link = ticket_staff_link($ticketId);
     $subject = ticket_email_subject($ticketId, $ticketSubject);
-    $colors = TICKET_STATUS_EMAIL_COLORS[$status] ?? TICKET_STATUS_EMAIL_COLORS['Open'];
     $sentence = $createdBy !== null
         ? "{$createdBy} opened a new ticket on a requester's behalf. It is assigned to you or your group."
         : 'A new ticket was submitted and assigned to your group.';
 
+    // The email shows what the ticket page shows (who, when, and what was
+    // asked), so read those from the ticket itself -- both callers have just
+    // committed it.
+    $stmt = db()->prepare('SELECT requester_name, description, created_at FROM tickets WHERE id = ?');
+    $stmt->execute([$ticketId]);
+    $ticket = $stmt->fetch();
+    if (!$ticket) {
+        return;
+    }
+
     $html = email_shell(
         email_intro(null, $sentence) . "\n"
-        . ticket_email_meta_box($ticketId, $ticketSubject, $status, $colors, $priority) . "\n"
+        . ticket_email_card($ticketId, $ticketSubject, $priority, $ticket['requester_name'], $ticket['created_at'], $ticket['description'], $createdBy) . "\n"
         . email_button($link, 'View ticket') . "\n"
-        . ticket_email_footer($ticketId),
-        $colors
+        . ticket_email_footer($ticketId, true)
     );
 
-    $text = ticket_email_plain(null, $sentence, $ticketId, $ticketSubject, $status, $priority, null, null, $link);
+    $rule = str_repeat('-', 58);
+    $text = implode("\n", [
+        $sentence,
+        '',
+        $rule,
+        "Ticket #{$ticketId} (New) | Priority: {$priority}",
+        $ticketSubject,
+        ($createdBy !== null ? 'Requested by ' : 'Submitted by ') . $ticket['requester_name'] . ' on ' . format_db_time($ticket['created_at'])
+            . ($createdBy !== null ? " (created by agent: {$createdBy})" : ''),
+        $rule,
+        '',
+        $ticket['description'],
+        '',
+        'View the ticket:',
+        $link,
+        '',
+        ticket_email_reply_hint(true),
+    ]);
 
     notify_ticket_agents($ticketId, $subject, $html, $text, $excludeEmail);
 }
@@ -560,11 +694,11 @@ function send_ticket_reply_notification(int $ticketId, string $ticketSubject, st
         . ticket_email_meta_box($ticketId, $ticketSubject, $status, $colors) . "\n"
         . ticket_email_callout('Message from the submitter', $replyBody) . "\n"
         . email_button($link, 'View ticket & reply') . "\n"
-        . ticket_email_footer($ticketId),
+        . ticket_email_footer($ticketId, true),
         $colors
     );
 
-    $text = ticket_email_plain(null, $sentence, $ticketId, $ticketSubject, $status, null, ['Message from the submitter', $replyBody], null, $link);
+    $text = ticket_email_plain(null, $sentence, $ticketId, $ticketSubject, $status, null, ['Message from the submitter', $replyBody], null, $link, true);
 
     notify_ticket_agents($ticketId, $subject, $html, $text);
 }

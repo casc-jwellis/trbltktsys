@@ -174,7 +174,7 @@ function create_ticket_submit(array $form, array $files): array
     $stmt->execute([$creatorId]);
     $creatorEmail = $stmt->fetchColumn() ?: null;
 
-    send_new_ticket_notification($ticketId, $form['subject'], $form['priority'], $creatorName, $creatorEmail, $form['status']);
+    send_new_ticket_notification($ticketId, $form['subject'], $form['priority'], $creatorName, $creatorEmail);
 
     return ['errors' => [], 'ticket_id' => $ticketId];
 }
