@@ -180,6 +180,16 @@ function available_migrations(): array
             'label'   => 'Widen the ticket category column to match category names',
             'applied' => fn (): bool => column_length('tickets', 'category') >= 50,
         ],
+        [
+            'file'    => '024_google_signin_settings.sql',
+            'label'   => 'Sign in with Google settings',
+            'applied' => fn (): bool => table_exists('google_signin_settings'),
+        ],
+        [
+            'file'    => '025_password_resets.sql',
+            'label'   => 'Forgot password links',
+            'applied' => fn (): bool => table_exists('password_resets'),
+        ],
     ];
 }
 

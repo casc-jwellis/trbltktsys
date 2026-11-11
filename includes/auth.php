@@ -161,6 +161,18 @@ function attempt_login(string $username, string $password): string
         return 'disabled';
     }
 
+    start_user_session($user);
+
+    return 'ok';
+}
+
+/**
+ * Starts the signed-in session for someone who has already proved who they are
+ * (a correct password, or Google). $user is a users row with at least id,
+ * username and full_name.
+ */
+function start_user_session(array $user): void
+{
     session_regenerate_id(true);
     $_SESSION['user'] = [
         'id'        => $user['id'],
@@ -168,8 +180,6 @@ function attempt_login(string $username, string $password): string
         'full_name' => $user['full_name'],
         'theme'     => $user['theme'] ?? null,
     ];
-
-    return 'ok';
 }
 
 function logout(): void

@@ -34,6 +34,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// The button is shown only when an admin has turned it on and it can work on
+// this server. The nonce goes inside the signed token Google returns, and
+// login-google.php only accepts a token carrying the nonce of the session it
+// arrives in -- so a token can't be replayed or planted from another visitor.
+require_once __DIR__ . '/includes/mail.php';
+require_once __DIR__ . '/includes/password-resets.php';
+require_once __DIR__ . '/includes/google-signin.php';
+$googleClientId = google_signin_client_id(); // null before migration 024 is applied
+$googleNonce = null;
+if ($googleClientId !== null) {
+    if (empty($_SESSION['google_nonce'])) {
+        $_SESSION['google_nonce'] = bin2hex(random_bytes(16));
+    }
+    $googleNonce = $_SESSION['google_nonce'];
+}
+
 $pageTitle = 'Helpdesk Login';
 require __DIR__ . '/includes/header.php';
 ?>
@@ -64,6 +80,29 @@ require __DIR__ . '/includes/header.php';
                     <button type="submit" class="btn btn-primary btn-lg">Log In</button>
                 </div>
             </form>
+
+            <?php if (password_resets_available()): ?>
+                <p class="text-center mt-3 mb-0"><a href="forgot-password.php" class="text-decoration-none small">Forgot password?</a></p>
+            <?php endif; ?>
+
+            <?php if ($googleClientId !== null): ?>
+                <div class="d-flex align-items-center gap-3 my-4 text-body-secondary small">
+                    <hr class="flex-grow-1 m-0"><span>or</span><hr class="flex-grow-1 m-0">
+                </div>
+                <?php // Google's script turns these two divs into the button; when it's used, assets/js/google-signin.js posts the signed token to login-google.php. ?>
+                <div class="google-signin d-flex justify-content-center">
+                    <div id="g_id_onload" data-client_id="<?= e($googleClientId) ?>" data-callback="googleSignIn"
+                         data-nonce="<?= e($googleNonce) ?>" data-auto_prompt="false"></div>
+                    <div class="g_id_signin" data-type="standard" data-theme="outline" data-size="large" data-shape="rectangular"
+                         data-text="signin_with" data-logo_alignment="left" data-width="280"></div>
+                </div>
+                <form method="post" action="login-google.php" id="google-form" hidden>
+                    <?= csrf_field() ?>
+                    <input type="hidden" name="credential" value="">
+                </form>
+                <script src="<?= asset_url('assets/js/google-signin.js') ?>"></script>
+                <script src="https://accounts.google.com/gsi/client" async></script>
+            <?php endif; ?>
         </div>
     </div>
 </div>

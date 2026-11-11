@@ -7,3 +7,4 @@ uploads/*
 !uploads/.gitkeep
 storage/imap-sync/*
 !storage/imap-sync/.gitkeep
+storage/google-certs.json

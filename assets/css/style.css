@@ -286,3 +286,9 @@ body {
 @media (min-width: 992px) { .modal-dialog.modal-container-width { --bs-modal-width: 936px; } }
 @media (min-width: 1200px) { .modal-dialog.modal-container-width { --bs-modal-width: 1116px; } }
 @media (min-width: 1400px) { .modal-dialog.modal-container-width { --bs-modal-width: 1296px; } }
+
+/* Google's sign-in button lives in an iframe; a light colour scheme keeps it from getting an opaque box in dark mode. */
+.google-signin {
+    color-scheme: light;
+    min-height: 44px;
+}

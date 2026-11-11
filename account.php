@@ -3,6 +3,9 @@ require __DIR__ . '/includes/bootstrap.php';
 require_login();
 
 $userId = current_user_id();
+// Only administrators change email addresses, their own included: Sign in with
+// Google and "Forgot password" both identify an account by its email address.
+$canEditEmail = is_admin();
 $stmt = db()->prepare('SELECT username, full_name, email, phone, password_hash FROM users WHERE id = ?');
 $stmt->execute([$userId]);
 $account = $stmt->fetch();
@@ -23,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $old['full_name'] = trim((string) ($_POST['full_name'] ?? ''));
     $old['username']  = trim((string) ($_POST['username'] ?? ''));
-    $old['email']     = trim((string) ($_POST['email'] ?? ''));
+    $old['email']     = $canEditEmail ? trim((string) ($_POST['email'] ?? '')) : (string) $account['email'];
     $old['phone']     = trim((string) ($_POST['phone'] ?? ''));
     $currentPassword    = (string) ($_POST['current_password'] ?? '');
     $newPassword        = (string) ($_POST['new_password'] ?? '');
@@ -35,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($old['username'] === '' || strlen($old['username']) > 50) {
         $errors[] = 'Please enter a username (up to 50 characters).';
     }
-    if (!filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
+    if ($canEditEmail && !filter_var($old['email'], FILTER_VALIDATE_EMAIL)) {
         $errors[] = 'Please enter a valid email address.';
     }
     if ($old['phone'] === '') {
@@ -117,7 +120,10 @@ require __DIR__ . '/includes/header.php';
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="email">Email Address</label>
-                        <input type="email" class="form-control" id="email" name="email" required maxlength="150" value="<?= e($old['email']) ?>">
+                        <input type="email" class="form-control" id="email" name="email" required maxlength="150" value="<?= e($old['email']) ?>" <?= $canEditEmail ? '' : 'readonly' ?>>
+                        <?php if (!$canEditEmail): ?>
+                            <div class="form-text">Only an administrator can change your email address.</div>
+                        <?php endif; ?>
                     </div>
                 </div>
 

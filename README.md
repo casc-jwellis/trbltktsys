@@ -5,7 +5,25 @@ A simple PHP trouble ticket system.
 - **Ticket submission** (`submit-ticket.php`) — public, no login required. Each submission
   upserts a `requesters` record (keyed by email, with name and optional phone) so submitters
   can be tracked across tickets.
-- **Helpdesk login** (`login.php`) — session-based auth for staff.
+- **Helpdesk login** (`login.php`) — session-based auth for staff, with an optional **Sign in with
+  Google** button (`login-google.php`, `includes/google-signin.php`; turn it on in Admin Settings →
+  Sign-in). Only accounts on the allowed Google Workspace domain (`carlalbert.edu` by default) can
+  use it, and only when exactly one active helpdesk account has the same email address — nobody is
+  created by signing in. Google's signed ID token is verified here (signature against Google's
+  published keys, client ID, expiry, a one-time nonce, verified email), not just trusted. Needs the
+  PHP `openssl` extension and outgoing HTTPS to `www.googleapis.com`; Google's keys are cached in
+  `storage/google-certs.json`. Passwords keep working.
+- **Forgot password** (`forgot-password.php`, `choose-password.php`, `includes/password-resets.php`) —
+  shown on the login page once outgoing mail is set up. Type a username or email address and a
+  one-time link to choose a new password is emailed. The link works once and expires in an hour;
+  only a hash of its secret is stored, and asking again replaces the earlier link. Everyone who
+  asks gets the same answer at the same speed, whether or not an account matched (the email is sent
+  after the response), and requests are rate-limited per account and per address. Nothing is sent
+  for an unknown, disabled, or email-less account, or an address shared by two accounts. Only
+  administrators can change an account's email address (My Account is read-only for everyone else),
+  since Google sign-in and this both identify an account by it.
+- **Privacy policy** (`privacy.php`) — public, linked from the footer. Google's consent screen needs
+  a public privacy-policy link; edit the text there and bump `PRIVACY_UPDATED` when it changes.
 - **Ticket queue & management** (`dashboard.php`, `ticket.php`) — staff-only, requires login. New
   tickets are auto-assigned to whichever groups are configured for their category; staff can
   reassign a ticket to any combination of groups from the ticket page. Agents only see tickets

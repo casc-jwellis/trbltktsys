@@ -3,9 +3,10 @@ require __DIR__ . '/includes/bootstrap.php';
 require_once __DIR__ . '/includes/admin.php';
 require_once __DIR__ . '/includes/mail.php';
 require_once __DIR__ . '/includes/imap.php';
+require_once __DIR__ . '/includes/google-signin.php';
 require_admin();
 
-$activeTab = in_array($_GET['tab'] ?? '', ['groups', 'categories', 'responses', 'theme', 'email', 'database'], true) ? $_GET['tab'] : 'users';
+$activeTab = in_array($_GET['tab'] ?? '', ['groups', 'categories', 'responses', 'theme', 'email', 'signin', 'database'], true) ? $_GET['tab'] : 'users';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verify_csrf()) {
@@ -500,6 +501,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('error', 'Could not connect: ' . $e->getMessage());
         }
         $activeTab = 'email';
+    } elseif ($action === 'update_google_signin') {
+        if (!google_signin_supported()) {
+            flash('error', 'The database is out of date. Run the pending updates on the Database tab to enable Sign in with Google.');
+        } else {
+            $enabled = isset($_POST['google_enabled']);
+            $clientId = trim((string) ($_POST['google_client_id'] ?? ''));
+            $allowedDomain = strtolower(trim((string) ($_POST['google_allowed_domain'] ?? '')));
+
+            $errors = [];
+            if ($clientId !== '' && preg_match(GoogleIdToken::CLIENT_ID, $clientId) !== 1) {
+                $errors[] = 'That does not look like a Google client ID. It ends in .apps.googleusercontent.com.';
+            }
+            if ($enabled && $clientId === '') {
+                $errors[] = 'Enter the client ID before turning Sign in with Google on.';
+            }
+            if (preg_match('/^(?=.{1,100}$)([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/', $allowedDomain) !== 1) {
+                $errors[] = 'Enter the email domain that may sign in, such as carlalbert.edu.';
+            }
+            if ($enabled && ($problem = GoogleIdToken::problem()) !== null) {
+                $errors[] = $problem;
+            }
+
+            if ($errors) {
+                flash('error', implode(' ', $errors));
+            } else {
+                save_google_signin_settings($enabled, $clientId, $allowedDomain);
+
+                // Prove now that this server can fetch Google's signing keys, so a
+                // firewall problem shows up here and not as a mysterious failure
+                // the first time someone tries the button.
+                $warning = null;
+                if ($enabled) {
+                    try {
+                        (new GoogleIdToken(GoogleIdToken::cacheFile()))->refresh();
+                    } catch (RuntimeException $e) {
+                        $warning = 'Saved, but this server could not reach Google (' . $e->getMessage() . '). '
+                            . 'Sign in with Google will fail until it can make HTTPS requests to www.googleapis.com.';
+                    }
+                }
+                flash($warning === null ? 'success' : 'error', $warning ?? 'Sign-in settings updated.');
+            }
+        }
+        $activeTab = 'signin';
     } elseif ($action === 'run_migrations') {
         $appliedMigrations = [];
         try {
@@ -562,6 +606,7 @@ $categories = all_categories_with_counts();
 $cannedResponses = all_canned_responses();
 $smtpSettings = get_smtp_settings();
 $imapSettings = get_imap_settings();
+$googleSettings = get_google_signin_settings();
 $pendingMigrations = pending_migrations();
 
 $pageTitle = 'Admin Settings';
@@ -601,6 +646,9 @@ require __DIR__ . '/includes/header.php';
         <a class="nav-link <?= $activeTab === 'email' ? 'active' : '' ?>" href="admin-settings.php?tab=email">Email Server</a>
     </li>
     <li class="nav-item">
+        <a class="nav-link <?= $activeTab === 'signin' ? 'active' : '' ?>" href="admin-settings.php?tab=signin">Sign-in</a>
+    </li>
+    <li class="nav-item">
         <a class="nav-link <?= $activeTab === 'database' ? 'active' : '' ?>" href="admin-settings.php?tab=database">Database</a>
     </li>
 </ul>
@@ -615,6 +663,8 @@ require __DIR__ . '/includes/header.php';
     <?php require __DIR__ . '/includes/admin-theme-tab.php'; ?>
 <?php elseif ($activeTab === 'email'): ?>
     <?php require __DIR__ . '/includes/admin-email-tab.php'; ?>
+<?php elseif ($activeTab === 'signin'): ?>
+    <?php require __DIR__ . '/includes/admin-signin-tab.php'; ?>
 <?php elseif ($activeTab === 'database'): ?>
     <?php require __DIR__ . '/includes/admin-database-tab.php'; ?>
 <?php else: ?>

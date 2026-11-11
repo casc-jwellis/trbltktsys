@@ -187,3 +187,33 @@ CREATE TABLE theme_settings (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO theme_settings (id) VALUES (1);
+
+-- "Sign in with Google" settings (Admin Settings -> Sign-in). Single settings
+-- row, always id 1, mirroring smtp_settings. The client ID is not a secret.
+-- allowed_domain is the only email domain (and Google Workspace domain) whose
+-- accounts may sign in this way.
+CREATE TABLE google_signin_settings (
+    id              TINYINT UNSIGNED PRIMARY KEY,
+    enabled         TINYINT(1) NOT NULL DEFAULT 0,
+    client_id       VARCHAR(150) NOT NULL DEFAULT '',
+    allowed_domain  VARCHAR(100) NOT NULL DEFAULT 'carlalbert.edu',
+    updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO google_signin_settings (id) VALUES (1);
+
+-- The one-time links behind "Forgot password" on the login page. Only a hash
+-- of each link's secret is kept (so a copy of this table can't be used to reset
+-- anyone's password), a link is good for one hour and one use, and asking again
+-- replaces the earlier link. Times are stored in UTC.
+CREATE TABLE password_resets (
+    id            INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id       INT UNSIGNED NOT NULL,
+    token_hash    CHAR(64) NOT NULL UNIQUE,
+    created_at    DATETIME NOT NULL,
+    expires_at    DATETIME NOT NULL,
+    requested_ip  VARCHAR(45) NOT NULL DEFAULT '',
+    KEY idx_password_resets_user (user_id),
+    KEY idx_password_resets_ip (requested_ip, created_at),
+    CONSTRAINT fk_password_resets_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -808,3 +808,40 @@ function send_new_user_email(string $email, string $fullName, string $username, 
 
     send_ticket_email($email, $subject, $html, $text);
 }
+
+/**
+ * Sent when someone asks for a "Forgot password" link on the login page. $path
+ * is the reset page's address including the one-time secret, so it goes only
+ * into this message. Throws on failure; the caller decides what the person asking
+ * sees (nothing -- see forgot-password.php).
+ */
+function send_password_reset_email(string $email, string $fullName, string $username, string $link, int $minutes): void
+{
+    $appName = app_name();
+    $subject = "Reset your {$appName} password";
+    $sentence = "Someone asked to reset the password for the account \"{$username}\" on {$appName}.";
+    $expiry = "The link works once and expires in {$minutes} minutes.";
+    $ignore = 'If you did not ask for this, ignore this message: your password has not changed, and nobody can use the link without this email.';
+
+    $html = email_shell(
+        email_intro($fullName, $sentence) . "\n"
+        . email_note($expiry) . "\n"
+        . email_button($link, 'Choose a new password') . "\n"
+        . '<tr><td style="padding:0 32px 24px;"><p class="note-text" style="margin:0;font-size:13px;font-style:italic;">' . e($ignore) . '</p></td></tr>'
+    );
+
+    $text = implode("\n", [
+        "Hi {$fullName},",
+        '',
+        $sentence,
+        '',
+        'To choose a new password, open this link:',
+        $link,
+        '',
+        $expiry,
+        '',
+        $ignore,
+    ]);
+
+    send_ticket_email($email, $subject, $html, $text);
+}
