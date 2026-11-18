@@ -22,6 +22,10 @@ function timestamped(string $message): string
     return '[' . date('Y-m-d H:i:s') . '] ' . $message;
 }
 
+if (configured_app_url() === null) {
+    fwrite(STDERR, timestamped("Warning: no 'url' under 'app' in config/config.php, so links in emails sent from here will be wrong (they would point at \"localhost\"). Add e.g. 'url' => 'https://helpdesk.example.edu'.\n"));
+}
+
 if (!imap_settings_supported()) {
     fwrite(STDERR, timestamped("IMAP settings table not found -- run the pending database updates in Admin Settings (Database tab) first.\n"));
     exit(1);

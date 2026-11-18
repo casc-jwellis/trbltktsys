@@ -307,6 +307,14 @@ function ticket_public_tokens_supported(): bool
  */
 function base_url(): string
 {
+    // The address set in config/config.php ('app' => ['url' => ...]) always wins. It is the only thing a
+    // command-line run (bin/imap-poll.php, which has no browser request to read a host from) can use, and
+    // it keeps a forged Host header from steering the links in password-reset and notification emails.
+    $configured = configured_app_url();
+    if ($configured !== null) {
+        return $configured;
+    }
+
     $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($_SERVER['SERVER_PORT'] ?? '') === '443';
     $scheme = $isHttps ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
@@ -730,6 +738,19 @@ function asset_url(string $path): string
 }
 
 /** The site name from config/config.php (chosen at install), or "Helpdesk" -- the default Admin Settings -> Theme can override. */
+/** The public address of the helpdesk from config/config.php, without a trailing slash, or null when none is set. */
+function configured_app_url(): ?string
+{
+    static $url = false;
+    if ($url === false) {
+        $path = __DIR__ . '/../config/config.php';
+        $config = file_exists($path) ? require $path : [];
+        $value = rtrim(trim((string) ($config['app']['url'] ?? '')), '/');
+        $url = preg_match('#^https?://[^\s/]+(/\S*)?$#i', $value) ? $value : null;
+    }
+    return $url;
+}
+
 function configured_app_name(): string
 {
     static $config = null;

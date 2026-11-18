@@ -11,5 +11,8 @@ return [
     'app' => [
         'name'     => 'Carl Albert Helpdesk',
         'timezone' => 'America/Chicago',
+        // Public address of this helpdesk, no trailing slash. Used for the links in emails; required for emails
+        // sent by bin/imap-poll.php, which has no browser request to learn it from.
+        'url'      => 'https://helpdesk.example.edu',
     ],
 ];

@@ -36,6 +36,7 @@ $old = [
     'db_user'   => '',
     'app_name'  => 'Helpdesk',
     'timezone'  => 'America/Chicago',
+    'app_url'   => base_url(),
     'username'  => '',
     'full_name' => '',
     'email'     => '',
@@ -46,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['stage'] ?? '') === $stage)
     if (!verify_csrf()) {
         $errors[] = 'Your session expired. Please try again.';
     } elseif ($stage === 'config') {
-        foreach (['db_host', 'db_port', 'db_name', 'db_user', 'app_name', 'timezone'] as $field) {
+        foreach (['db_host', 'db_port', 'db_name', 'db_user', 'app_name', 'timezone', 'app_url'] as $field) {
             $old[$field] = trim((string) ($_POST[$field] ?? ''));
         }
         $dbPass = (string) ($_POST['db_pass'] ?? '');
@@ -66,6 +67,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['stage'] ?? '') === $stage)
         if (!in_array($old['timezone'], DateTimeZone::listIdentifiers(), true)) {
             $errors[] = 'Please choose a valid timezone.';
         }
+        $old['app_url'] = rtrim($old['app_url'], '/');
+        if (!preg_match('#^https?://[^\s/]+(/\S*)?$#i', $old['app_url'])) {
+            $errors[] = 'Please enter the helpdesk address, starting with http:// or https:// (for example https://helpdesk.example.edu).';
+        }
 
         if (!$errors) {
             $dsn = 'mysql:host=' . $old['db_host']
@@ -84,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['stage'] ?? '') === $stage)
             try {
                 write_config(
                     ['dsn' => $dsn, 'user' => $old['db_user'], 'pass' => $dbPass],
-                    ['name' => $old['app_name'], 'timezone' => $old['timezone']]
+                    ['name' => $old['app_name'], 'timezone' => $old['timezone'], 'url' => $old['app_url']]
                 );
                 header('Location: install.php');
                 exit;
@@ -205,6 +210,11 @@ require __DIR__ . '/includes/header.php';
                         <div class="col-md-6">
                             <label class="form-label" for="app_name">Helpdesk Name</label>
                             <input class="form-control" id="app_name" name="app_name" value="<?= e($old['app_name']) ?>">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="app_url">Helpdesk Address</label>
+                            <input class="form-control" id="app_url" name="app_url" value="<?= e($old['app_url']) ?>">
+                            <div class="form-text">The public web address people use to reach this helpdesk. It is used for the links in emails, so make sure it is the real address, not localhost.</div>
                         </div>
                         <div class="col-12">
                             <label class="form-label" for="timezone">Timezone</label>

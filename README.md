@@ -104,7 +104,7 @@ Reload nginx after editing (`sudo nginx -t && sudo systemctl reload nginx`).
 
 Any page will redirect you into `install.php` until setup is finished. The installer walks through three steps:
 
-1. **Database credentials** — enter your host/port/database/username/password; the connection is tested before anything is saved to `config/config.php`.
+1. **Database credentials** — enter your host/port/database/username/password and the helpdesk's public address (used for links in emails); the connection is tested before anything is saved to `config/config.php`.
 2. **Tables** — creates the `tickets`, `users`, and `agent_groups` tables (and their join tables) from `schema.sql` with one click.
 3. **First admin account** — create the helpdesk staff login you'll use going forward, with a required email and optional phone number. This account is flagged as an Administrator, so it can manage tickets and access Admin Settings immediately.
 
@@ -137,4 +137,5 @@ sends a username and password over an encrypted connection (or to a server on th
    root, using whatever job scheduler your server has (Windows Task Scheduler, cron, ...). It's
    safe to run as often as you like — it's a no-op the moment inbound mail is disabled, and only
    processes messages newer than its last run otherwise.
+   The poller has no browser request to learn the site address from, so set `'url'` under `'app'` in `config/config.php` (e.g. `'url' => 'https://helpdesk.example.edu'`); otherwise links in emails it sends point at `localhost`. The installer sets this for new installs; add it by hand to an existing one.
 3. Only STARTTLS is unsupported — use implicit SSL/TLS (typically port 993) or plaintext.
